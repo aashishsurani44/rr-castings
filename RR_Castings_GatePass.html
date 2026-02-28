@@ -1,0 +1,2424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gate Pass Management System</title>
+    <link rel="icon" type="image/x-icon" href="LOGO.png">
+
+    <!-- ============================================================
+         STYLES
+         Color Scheme: Primary Red #C41E3A, Primary Purple #6B4C9A
+         Matches RR Castings Invoice App exactly
+    ============================================================ -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-red: #C41E3A;
+            --primary-purple: #6B4C9A;
+            --dark-gray: #2C2C2C;
+            --light-gray: #F5F5F5;
+            --border-gray: #CCCCCC;
+            --white: #FFFFFF;
+            --text-dark: #333333;
+            --blue-accent: #0066CC;
+            --success-green: #28A745;
+            --warning-orange: #FFA500;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-dark);
+            overscroll-behavior-y: contain;
+        }
+
+        /* ---- HEADER ---- */
+        .header {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-purple));
+            color: var(--white);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+
+        .user-role {
+            background-color: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            background-color: var(--white);
+            color: var(--primary-red);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover { background-color: var(--light-gray); }
+
+        /* ---- MENU TOGGLE BUTTON (same style as invoice app) ---- */
+        .menu-toggle-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-purple));
+            border: none;
+            border-radius: 8px;
+            color: var(--white);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .menu-toggle-btn:hover { transform: scale(1.05); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .menu-toggle-btn:active { transform: scale(0.95); }
+
+        /* ---- CONTAINER ---- */
+        .container { display: flex; height: calc(100vh - 90px); }
+
+        /* ============================================================
+           SIDEBAR
+           Starts HIDDEN (width: 0) on load.
+           openNav() sets it to 250px, closeNav() sets it back to 0.
+           This matches the invoice app exactly.
+        ============================================================ */
+        .sidebar {
+            height: 100%;
+            width: 0;              /* STARTS HIDDEN */
+            position: fixed;
+            z-index: 999;
+            top: 0;
+            left: 0;
+            background-color: var(--dark-gray);
+            color: var(--white);
+            overflow-x: hidden;
+            overflow-y: auto;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+
+        .sidebar .closebtn {
+            position: absolute;
+            top: 10px;
+            right: 25px;
+            font-size: 36px;
+            color: var(--white);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .nav-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            white-space: nowrap;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-left-color: var(--primary-red);
+        }
+
+        .nav-item.active {
+            background-color: rgba(196, 30, 58, 0.3);
+            border-left-color: var(--primary-red);
+        }
+
+        .nav-icon { font-size: 18px; }
+
+        /* ---- MAIN CONTENT ---- */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background-color: var(--light-gray);
+            margin-left: 0;          /* Always 0 — sidebar overlays on open */
+            transition: margin-left 0.5s;
+        }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ---- DASHBOARD CARDS ---- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-card {
+            background-color: var(--white);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary-red);
+        }
+
+        .dashboard-card h3 {
+            color: var(--dark-gray);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .dashboard-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-purple);
+            margin: 10px 0;
+        }
+
+        .dashboard-card .subtitle { font-size: 13px; color: #666; }
+
+        /* ---- FORM SECTIONS ---- */
+        .form-section {
+            background-color: var(--white);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .form-section h2 {
+            color: var(--primary-red);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-gray);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group { display: flex; flex-direction: column; }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-gray);
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 15px;
+            border: 1px solid var(--border-gray);
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 3px rgba(107, 76, 154, 0.1);
+        }
+
+        /* ---- BUTTONS ---- */
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            justify-content: center;
+        }
+
+        .btn-primary { background-color: var(--primary-red); color: var(--white); }
+        .btn-primary:hover { background-color: #A01830; }
+        .btn-secondary { background-color: var(--primary-purple); color: var(--white); }
+        .btn-secondary:hover { background-color: #5A3D82; }
+        .btn-success { background-color: var(--success-green); color: var(--white); }
+        .btn-success:hover { background-color: #1e7e34; }
+        .btn-warning { background-color: var(--warning-orange); color: var(--white); }
+        .btn-sm { padding: 6px 15px; font-size: 12px; min-height: 36px; }
+
+        /* ---- TABLE ---- */
+        .table-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead { background-color: var(--primary-purple); color: var(--white); }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-gray);
+            font-size: 14px;
+        }
+
+        tbody tr:hover { background-color: var(--light-gray); }
+        .action-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+
+        /* ---- MODAL ---- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            margin: 50px auto;
+            padding: 0;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 10px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-purple));
+            color: var(--white);
+            padding: 20px 30px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body { padding: 30px; max-height: 70vh; overflow-y: auto; }
+
+        .close {
+            color: var(--white);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .close:hover { opacity: 0.8; }
+
+        /* ---- LOGIN PAGE ---- */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-purple));
+            padding: 20px;
+        }
+
+        .login-box {
+            background-color: var(--white);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-box h2 { text-align: center; color: var(--primary-red); margin-bottom: 30px; }
+
+        .login-email-wrapper select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--border-gray);
+            border-radius: 5px;
+            font-size: 16px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .login-email-wrapper select:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 3px rgba(107, 76, 154, 0.1);
+        }
+
+        /* ---- FILTERS ---- */
+        .filters {
+            background-color: var(--white);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .filters .form-row { margin-bottom: 0; }
+
+        /* ---- ALERTS ---- */
+        .alert { padding: 15px 20px; border-radius: 5px; margin-bottom: 20px; font-weight: 500; }
+        .alert-success { background-color: #d4edda; color: #155724; border-left: 4px solid var(--success-green); }
+        .alert-error { background-color: #f8d7da; color: #721c24; border-left: 4px solid var(--primary-red); }
+        .alert-info { background-color: #d1ecf1; color: #0c5460; border-left: 4px solid var(--blue-accent); }
+
+        /* ---- SPINNER ---- */
+        .spinner {
+            border: 3px solid var(--light-gray);
+            border-top: 3px solid var(--primary-red);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ---- INWARD / OUTWARD BADGES ---- */
+        .badge-inward {
+            background-color: #d1ecf1; color: #0c5460;
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: 600; white-space: nowrap;
+        }
+
+        .badge-outward {
+            background-color: #f8d7da; color: #721c24;
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 12px; font-weight: 600; white-space: nowrap;
+        }
+
+        /* ---- GATE PASS DETAIL VIEW ---- */
+        .gp-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .gp-field-label { font-size: 11px; text-transform: uppercase; color: #888; font-weight: 600; margin-bottom: 2px; }
+        .gp-field-value { font-size: 15px; font-weight: 600; color: var(--text-dark); }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 15px; padding: 15px; }
+            .header-left { flex-direction: row; text-align: center; width: 100%; justify-content: center; align-items: center; gap: 15px; }
+            .menu-toggle-btn { width: 45px; height: 45px; font-size: 20px; }
+            .header h1 { font-size: 18px; }
+            .user-info { gap: 8px; }
+            .user-role { font-size: 12px; padding: 4px 10px; }
+            .logout-btn { padding: 6px 12px; font-size: 12px; }
+            .container { flex-direction: column; height: auto; position: relative; }
+            .main-content { padding: 15px; padding-bottom: 80px; }
+            .form-row { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr 1fr; }
+            .dashboard-card { padding: 15px; }
+            .dashboard-card .value { font-size: 22px; }
+            .form-section { padding: 15px; }
+            .form-section h2 { font-size: 18px; }
+            table { font-size: 12px; }
+            th, td { padding: 8px 6px; }
+            .btn { padding: 10px 20px; font-size: 13px; }
+            .btn-sm { padding: 5px 10px; font-size: 11px; }
+            .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .modal-content { width: 95%; margin: 15px auto; }
+            .modal-body { padding: 15px; max-height: 65vh; }
+            .login-box { padding: 25px 20px; }
+            input, select, textarea { font-size: 16px !important; }
+            button, .btn, .nav-item { min-height: 44px; min-width: 44px; }
+            .gp-detail-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 16px; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .dashboard-card .value { font-size: 20px; }
+            .modal-content { width: 100%; margin: 5px; border-radius: 8px; }
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            input, select, textarea { font-size: 16px !important; -webkit-appearance: none; }
+        }
+
+        /* ---- MULTI-ITEM TABLE inside Create Gate Pass form ---- */
+        .items-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 6px; border: 1px solid var(--border-gray); }
+        .items-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        .items-table th { background: var(--primary-purple); color: white; padding: 10px 10px; font-size: 12px; text-align: left; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+        .items-table td { padding: 6px 6px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .items-table tbody tr:last-child td { border-bottom: none; }
+        .items-table tbody tr:hover { background: #fafafa; }
+        .items-table input, .items-table select { width: 100%; padding: 7px 9px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 13px; font-family: inherit; box-sizing: border-box; }
+        .items-table input:focus, .items-table select:focus { outline: none; border-color: var(--primary-purple); box-shadow: 0 0 0 2px rgba(107,76,154,0.12); }
+        .items-table input[readonly] { background: #f5f5f5; color: #666; cursor: default; }
+        .item-remove-btn { background: var(--primary-red); color: white; border: none; border-radius: 4px; width: 30px; height: 30px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: auto; }
+        .item-remove-btn:hover { background: #a01830; }
+        .add-item-btn { margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+         LOGIN SCREEN
+    ============================================================ -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div style="text-align:center; margin-bottom:15px;">
+                <img src="LOGO.png" width="90" height="90" alt="RR Castings Logo" onerror="this.style.display='none'">
+            </div>
+            <h2>RR Castings - Gate Pass</h2>
+            <div id="loginAlert"></div>
+            <!-- Login form: uses same email dropdown as Invoice app -->
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label>Select User</label>
+                    <div class="login-email-wrapper">
+                        <select id="loginEmailSelect" required>
+                            <option value="admin@rrcastings.com">ADMIN</option>
+                            <option value="user@rrcastings.com">USER</option>
+                            <option value="viewer@rrcastings.com">VIEWER</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="new-password">
+                </div>
+                <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Login</button>
+            </form>
+            <div id="loginLoadingMsg" style="margin-top:10px; text-align:center; font-size:13px; color:#888; display:none;">
+                Loading users from Firebase...
+            </div>
+            <div style="margin-top: 20px; text-align: center; font-size: 13px; color: #666;">
+                <p>Contact: Aashish for Login Details</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MAIN APPLICATION
+    ============================================================ -->
+    <div id="mainApp" style="display: none;">
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <!-- Same hamburger button as invoice app — opens sidebar overlay -->
+                <button class="menu-toggle-btn" onclick="openNav()">☰</button>
+                <h1>RR CASTINGS - Gate Pass Management System</h1>
+            </div>
+            <div class="user-info">
+                <span id="userEmail" style="font-size:13px; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                <span class="user-role" id="userRole"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="container">
+
+            <!-- ============================================================
+                 SIDEBAR
+                 Starts hidden (width: 0). openNav() expands to 250px.
+                 closeNav() collapses back to 0.
+                 Same behavior as invoice app.
+            ============================================================ -->
+            <div class="sidebar" id="mySidebar">
+                <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+
+                <div class="nav-item active" onclick="showPage('dashboard');" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="showPage('createGatePass');" data-page="createGatePass">
+                    <span class="nav-icon">📝</span>
+                    <span>Create Gate Pass</span>
+                </div>
+                <div class="nav-item" onclick="showPage('viewGatePasses');" data-page="viewGatePasses">
+                    <span class="nav-icon">📋</span>
+                    <span>View Gate Passes</span>
+                </div>
+                <div class="nav-item" onclick="showPage('customers');" data-page="customers">
+                    <span class="nav-icon">👥</span>
+                    <span>Customers</span>
+                </div>
+                <div class="nav-item" onclick="showPage('products');" data-page="products">
+                    <span class="nav-icon">📦</span>
+                    <span>Products</span>
+                </div>
+                <div class="nav-item" onclick="showPage('settings');" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings</span>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="main-content" id="mainContent">
+
+                <!-- ================================================
+                     PAGE: DASHBOARD
+                ================================================ -->
+                <div id="dashboard" class="page active">
+                    <h1 style="margin-bottom: 20px; color: var(--primary-red);">Dashboard</h1>
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3>Total Gate Passes</h3>
+                            <div class="value" id="totalGatePasses">0</div>
+                            <div class="subtitle">All time</div>
+                        </div>
+                        <div class="dashboard-card" style="border-left-color: var(--primary-purple);">
+                            <h3>This Month</h3>
+                            <div class="value" id="monthGatePasses">0</div>
+                            <div class="subtitle">Current month gate passes</div>
+                        </div>
+                        <div class="dashboard-card" style="border-left-color: var(--blue-accent);">
+                            <h3>Inward (This Month)</h3>
+                            <div class="value" id="inwardCount">0</div>
+                            <div class="subtitle">Inward gate passes</div>
+                        </div>
+                        <div class="dashboard-card" style="border-left-color: var(--warning-orange);">
+                            <h3>Outward (This Month)</h3>
+                            <div class="value" id="outwardCount">0</div>
+                            <div class="subtitle">Outward gate passes</div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h2>Recent Gate Passes</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Gate Pass No.</th>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Customer</th>
+                                        <th>Product</th>
+                                        <th>Vehicle No.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentGatePassesTable">
+                                    <tr><td colspan="6" style="text-align:center;">No gate passes yet</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================================================
+                     PAGE: CREATE GATE PASS
+                ================================================ -->
+                <div id="createGatePass" class="page">
+                    <h1 style="margin-bottom: 20px; color: var(--primary-red);">Create Gate Pass</h1>
+                    <div id="gatePassAlert"></div>
+                    <form id="gatePassForm">
+
+                        <!-- Gate Pass Type & Number -->
+                        <div class="form-section">
+                            <h2>Gate Pass Type & Number</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Gate Pass Type *</label>
+                                    <select id="gatePassType" required onchange="onTypeChange()">
+                                        <option value="INWARD">INWARD (Material Coming In)</option>
+                                        <option value="OUTWARD">OUTWARD (Material Going Out)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gate Pass Number (Auto-generated)</label>
+                                    <!-- Read-only: auto-set from settings prefix + counter -->
+                                    <input type="text" id="gatePassNumber" readonly
+                                        style="background-color:#f0f0f0; font-weight:bold; font-size:16px;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" id="gatePassDate" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Information -->
+                        <div class="form-section">
+                            <h2>Customer Information</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Select Pre-loaded Customer</label>
+                                    <!-- Selecting a customer auto-fills the fields below -->
+                                    <select id="customerSelect" onchange="fillCustomerDetails()">
+                                        <option value="">-- Select Customer --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Customer Name *</label>
+                                    <input type="text" id="customerName" placeholder="Enter Customer Name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Phone</label>
+                                    <input type="tel" id="customerPhone" placeholder="Enter Phone Number" maxlength="10">
+                                </div>
+                                <div class="form-group">
+                                    <label>Address</label>
+                                    <input type="text" id="customerAddress" placeholder="Enter Address">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product / Item Details — supports multiple items -->
+                        <div class="form-section">
+                            <h2>Product / Item Details</h2>
+                            <div class="items-table-wrap">
+                                <table class="items-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:34px;">S.No.</th>
+                                            <th style="min-width:80px;">Select Product</th>
+                                            <th style="min-width:80px;">Product / Item Name *</th>
+                                            <th style="width:80px;">Unit</th>
+                                            <th style="width:150px;">Weight / Qty *</th>
+                                            <th style="width:180px;">Amount (₹)</th>
+                                            <th style="width:36px;">Delete</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="itemsTableBody"></tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-secondary add-item-btn" onclick="addItemRow()">+ Add Item</button>
+                        </div>
+
+                        <!-- Vehicle & Weighbridge -->
+                        <div class="form-section">
+                            <h2>Vehicle & Weighbridge Details</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Vehicle Number</label>
+                                    <input type="text" id="vehicleNumber" placeholder="e.g. TS09AB1234"
+                                        style="text-transform:uppercase;"
+                                        oninput="this.value=this.value.toUpperCase()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Weighbridge Number</label>
+                                    <input type="text" id="weighbridgeNumber" placeholder="Enter Weighbridge / Slip No.">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Customer's Weight (kg)</label>
+                                    <input type="number" step="0.001" id="customerWeight"
+                                        placeholder="Weight as per customer" oninput="calcWeightDiff()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Our Weight (kg)</label>
+                                    <input type="number" step="0.001" id="ourWeight"
+                                        placeholder="Weight as per our weighbridge" oninput="calcWeightDiff()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Weight Difference (Our − Customer)</label>
+                                    <!-- Auto-calculated. Green = positive, Red = negative -->
+                                    <input type="text" id="weightDifference" readonly
+                                        style="background-color:#f0f0f0; font-weight:bold;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Remarks -->
+                        <div class="form-section">
+                            <h2>Remarks / Notes</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Additional Remarks</label>
+                                    <textarea id="remarks" rows="3" placeholder="Any additional notes..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div style="display:flex; gap:15px; justify-content:flex-end; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="resetGatePassForm()">🔄 Reset Form</button>
+                            <button type="submit" class="btn btn-primary" id="saveGatePassBtn">💾 Save Gate Pass</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ================================================
+                     PAGE: VIEW GATE PASSES
+                ================================================ -->
+                <div id="viewGatePasses" class="page">
+                    <h1 style="margin-bottom: 20px; color: var(--primary-red);">View Gate Passes</h1>
+
+                    <!-- Filters - same style as invoice app -->
+                    <div class="filters">
+                        <h3 style="margin-bottom: 15px;">Filters</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Search Gate Pass No.</label>
+                                <input type="text" id="filterGpNo" placeholder="Search...">
+                            </div>
+                            <div class="form-group">
+                                <label>Customer Name</label>
+                                <input type="text" id="filterCustomer" placeholder="Search...">
+                            </div>
+                            <div class="form-group">
+                                <label>Gate Pass Type</label>
+                                <select id="filterType">
+                                    <option value="">All Types</option>
+                                    <option value="INWARD">INWARD</option>
+                                    <option value="OUTWARD">OUTWARD</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Month</label>
+                                <select id="filterMonth">
+                                    <option value="">All Months</option>
+                                    <option value="01">January</option>
+                                    <option value="02">February</option>
+                                    <option value="03">March</option>
+                                    <option value="04">April</option>
+                                    <option value="05">May</option>
+                                    <option value="06">June</option>
+                                    <option value="07">July</option>
+                                    <option value="08">August</option>
+                                    <option value="09">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Year</label>
+                                <select id="filterYear">
+                                    <option value="">All Years</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>From Date</label>
+                                <input type="date" id="filterFromDate">
+                            </div>
+                            <div class="form-group">
+                                <label>To Date</label>
+                                <input type="date" id="filterToDate">
+                            </div>
+                        </div><br>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-primary" onclick="applyFilters()">🔍 Apply Filters</button>
+                            <button class="btn btn-secondary" onclick="clearFilters()">✖ Clear Filters</button>
+                            <!-- Download all filtered gate passes as Excel/CSV -->
+                            <button class="btn btn-success" onclick="downloadExcel()">📥 Download Excel</button>
+                        </div>
+                    </div>
+
+                    <!-- Gate Passes Table -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Gate Pass No.</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Weight \ Quantity</th>
+                                    <th>Vehicle No.</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allGatePassesTable">
+                                <tr><td colspan="8" style="text-align:center;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ================================================
+                     PAGE: CUSTOMERS
+                ================================================ -->
+                <div id="customers" class="page">
+                    <h1 style="margin-bottom: 20px; color: var(--primary-red);">Manage Customers</h1>
+                    <button class="btn btn-primary" onclick="showAddCustomerModal()" style="margin-bottom: 20px;">
+                        + Add New Customer
+                    </button>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>GSTIN</th>
+                                    <th>Phone</th>
+                                    <th>State</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTable">
+                                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ================================================
+                     PAGE: PRODUCTS
+                ================================================ -->
+                <div id="products" class="page">
+                    <h1 style="margin-bottom: 20px; color: var(--primary-red);">Manage Products</h1>
+                    <button class="btn btn-primary" onclick="showAddProductModal()" style="margin-bottom: 20px;">
+                        + Add New Product
+                    </button>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product Name</th>
+                                    <th>Unit Type</th>
+                                    <th>HSN/SAC Code</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTable">
+                                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ================================================
+                     PAGE: SETTINGS
+                ================================================ -->
+                <div id="settings" class="page">
+                    <h1 style="margin-bottom: 20px; color: var(--primary-red);">Settings</h1>
+
+                    <!-- Company Information -->
+                    <div class="form-section">
+                        <h2>Company Information</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Company Name *</label>
+                                <input type="text" id="settingCompanyName" placeholder="Enter Company Name">
+                            </div>
+                            <div class="form-group">
+                                <label>GSTIN</label>
+                                <input type="text" id="settingGSTIN" maxlength="15" placeholder="Enter GSTIN">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Address</label>
+                                <textarea id="settingAddress" rows="3" placeholder="Enter Company Address"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="settingPhone" placeholder="Enter Phone">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="settingEmail" placeholder="Enter Email">
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="settingState" placeholder="Enter State">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gate Pass Number Settings -->
+                    <div class="form-section">
+                        <h2>Gate Pass Number Settings</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Inward Gate Pass Prefix *</label>
+                                <input type="text" id="settingInwardPrefix" placeholder="e.g. RRC-IN-">
+                            </div>
+                            <div class="form-group">
+                                <label>Next Inward Number *</label>
+                                <input type="number" id="settingNextInwardNo" min="1" placeholder="e.g. 1">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Outward Gate Pass Prefix *</label>
+                                <input type="text" id="settingOutwardPrefix" placeholder="e.g. RRC-OUT-">
+                            </div>
+                            <div class="form-group">
+                                <label>Next Outward Number *</label>
+                                <input type="number" id="settingNextOutwardNo" min="1" placeholder="e.g. 1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                </div>
+
+            </div><!-- end main-content -->
+        </div><!-- end container -->
+    </div><!-- end mainApp -->
+
+
+    <!-- ============================================================
+         MODAL: ADD / EDIT CUSTOMER
+    ============================================================ -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="customerModalTitle">Add New Customer</h2>
+                <button class="close" onclick="closeCustomerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="customerForm">
+                    <input type="hidden" id="editCustomerId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Customer Name *</label>
+                            <input type="text" id="newCustomerName" placeholder="Enter Customer Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>GSTIN</label>
+                            <input type="text" id="newCustomerGSTIN" maxlength="15" placeholder="Enter GSTIN">
+                        </div>
+                        <div class="form-group">
+                            <label>PAN</label>
+                            <input type="text" id="newCustomerPAN" maxlength="10" placeholder="Enter PAN">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Address *</label>
+                            <textarea id="newCustomerAddress" rows="3" placeholder="Enter Address" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="newCustomerPhone" maxlength="10" placeholder="Enter Phone">
+                        </div>
+                        <div class="form-group">
+                            <label>State</label>
+                            <input type="text" id="newCustomerState" placeholder="Enter State">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:15px; justify-content:flex-end; margin-top:20px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeCustomerModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Customer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: ADD / EDIT PRODUCT
+    ============================================================ -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="productModalTitle">Add New Product</h2>
+                <button class="close" onclick="closeProductModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <input type="hidden" id="editProductId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Product Name *</label>
+                            <input type="text" id="newProductName" placeholder="Enter Product Name" required>
+                        </div>
+                        <!-- Unit type: determines whether Weight or Qty label is shown on gate pass form -->
+                        <div class="form-group">
+                            <label>Unit Type *</label>
+                            <select id="newProductUnit" required>
+                                <option value="kg">kg (Weight-based)</option>
+                                <option value="ton">ton (Tonnes)</option>
+                                <option value="pcs">pcs (Pieces)</option>
+                                <option value="nos">nos (Numbers)</option>
+                                <option value="ltr">ltr (Litres)</option>
+                                <option value="mtr">mtr (Metres)</option>
+                                <option value="Other">other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>HSN/SAC Code</label>
+                            <input type="text" id="newProductHSN" placeholder="Enter HSN/SAC Code">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="newProductDescription" placeholder="Enter Product Description">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:15px; justify-content:flex-end; margin-top:20px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: VIEW GATE PASS DETAILS
+    ============================================================ -->
+    <div id="viewGpModal" class="modal">
+        <div class="modal-content" style="max-width:860px;">
+            <div class="modal-header">
+                <h2 id="viewGpModalTitle">Gate Pass Details</h2>
+                <button class="close" onclick="closeViewGpModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="viewGpContent"></div>
+                <div style="display:flex; gap:15px; justify-content:center; margin-top:20px;">
+                    <button class="btn btn-secondary" onclick="closeViewGpModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============================================================
+         FIREBASE SDK — Same version as Invoice App
+    ============================================================ -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+    // ============================================================
+    // FIREBASE CONFIGURATION
+    // Same project as RR Castings Invoice App
+    // Gate pass data paths (separate from invoices):
+    //   /gatePasses/         — gate pass records
+    //   /customers/        — gate pass customer list
+    //   /products/         — gate pass product list
+    //   /gatePassSettings/         — gate pass app settings
+    //   /users/              — shared user roles (same as invoice app)
+    // ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDoIGsmCpqkIdUBkZGvP84aO5psGpe-Ze8",
+  authDomain: "rrcastings-95232.firebaseapp.com",
+  databaseURL: "https://rrcastings-95232-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rrcastings-95232",
+  storageBucket: "rrcastings-95232.firebasestorage.app",
+  messagingSenderId: "828531480551",
+  appId: "1:828531480551:web:83cba46bc7ceab80028f42"
+};
+    let auth, database;
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        auth     = firebase.auth();
+        database = firebase.database();
+        console.log('Firebase initialized OK');
+    } catch (err) {
+        console.error('Firebase init error:', err);
+        alert('Firebase initialization error. Check configuration.');
+    }
+
+    // ============================================================
+    // GLOBAL VARIABLES
+    // ============================================================
+    let currentUser  = null;
+    let userRole     = 'viewer';   // 'admin' | 'user' | 'viewer'
+    let allGatePasses = [];        // All gate passes from Firebase
+    let allCustomers  = [];        // All customers
+    let allProducts   = [];        // All products
+    let settings      = {};        // Company & numbering settings
+    let editingGpId   = null;      // ID of gate pass being edited (null = new)
+
+    // ============================================================
+    // APP INIT — DOMContentLoaded
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Prevent pull-to-refresh on mobile
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            document.body.style.overscrollBehavior = 'none';
+        }
+
+        // Firebase auth state — matches invoice app pattern exactly
+        auth.onAuthStateChanged(function (user) {
+            if (user) {
+                currentUser = user;
+                loadUserRole();
+            } else {
+                showLoginScreen();
+            }
+        });
+
+        // Set today's date on gate pass form
+        document.getElementById('gatePassDate').value = new Date().toISOString().split('T')[0];
+
+        // Form event listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('gatePassForm').addEventListener('submit', saveGatePass);
+        document.getElementById('customerForm').addEventListener('submit', saveCustomer);
+        document.getElementById('productForm').addEventListener('submit', saveProduct);
+
+        // Load user list from Firebase into login dropdown (same as invoice app)
+        loadLoginEmailDropdown();
+    });
+
+    // ============================================================
+    // LOAD LOGIN EMAIL DROPDOWN FROM FIREBASE /users node
+    // Matches invoice app exactly
+    // ============================================================
+    function loadLoginEmailDropdown() {
+        const loadingMsg = document.getElementById('loginLoadingMsg');
+        loadingMsg.style.display = 'block';
+
+        database.ref('users').once('value')
+            .then(snapshot => {
+                loadingMsg.style.display = 'none';
+                const data = snapshot.val();
+                if (!data) return; // Keep defaults if no users in Firebase
+
+                const select = document.getElementById('loginEmailSelect');
+                select.innerHTML = '';
+
+                Object.values(data).forEach(u => {
+                    if (u.email) {
+                        const label = u.role ? `${u.email} (${u.role.toUpperCase()})` : u.email;
+                        select.innerHTML += `<option value="${u.email}">${label}</option>`;
+                    }
+                });
+
+                // If nothing was populated, restore defaults
+                if (select.options.length === 0) {
+                    select.innerHTML = `
+                        <option value="admin@rrcastings.com">ADMIN</option>
+                        <option value="user@rrcastings.com">USER</option>
+                        <option value="viewer@rrcastings.com">VIEWER</option>
+                    `;
+                }
+            })
+            .catch(() => {
+                loadingMsg.style.display = 'none';
+                // Keep defaults on error — app still works
+            });
+    }
+
+    // ============================================================
+    // AUTHENTICATION — Matches invoice app exactly
+    // ============================================================
+    async function handleLogin(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const email    = document.getElementById('loginEmailSelect').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const alertDiv = document.getElementById('loginAlert');
+        const btn      = document.getElementById('loginSubmitBtn');
+
+        if (!email) {
+            alertDiv.innerHTML = '<div class="alert alert-error">Please select your email.</div>';
+            return;
+        }
+        if (!password) {
+            alertDiv.innerHTML = '<div class="alert alert-error">Please enter your password.</div>';
+            return;
+        }
+
+        btn.textContent = 'Logging in...';
+        btn.disabled    = true;
+        alertDiv.innerHTML = '';
+
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+            alertDiv.innerHTML = '<div class="alert alert-success">Login successful!</div>';
+            document.getElementById('loginPassword').value = '';
+        } catch (error) {
+            let msg = error.message;
+            if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(error.code)) {
+                msg = 'Invalid email or password. Please try again.';
+            } else if (error.code === 'auth/too-many-requests') {
+                msg = 'Too many failed attempts. Please try again later.';
+            }
+            alertDiv.innerHTML = `<div class="alert alert-error">${msg}</div>`;
+            btn.textContent = 'Login';
+            btn.disabled    = false;
+        }
+    }
+
+    function logout() {
+        auth.signOut();
+        document.getElementById('loginPassword').value = '';
+        showLoginScreen();
+    }
+
+    function showLoginScreen() {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('mainApp').style.display    = 'none';
+        loadLoginEmailDropdown();
+    }
+
+    function showMainApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display     = 'block';
+        loadAllData().then(() => resetGatePassForm());
+    }
+
+    // ============================================================
+    // LOAD USER ROLE FROM /users — Matches invoice app exactly
+    // ============================================================
+    async function loadUserRole() {
+        try {
+            const snap     = await database.ref(`users/${currentUser.uid}`).once('value');
+            const userData = snap.val();
+
+            if (!userData) {
+                // First login: auto-create as admin (same as invoice app)
+                userRole = 'admin';
+                await database.ref(`users/${currentUser.uid}`).set({
+                    email: currentUser.email,
+                    role:  'admin'
+                });
+            } else {
+                userRole = userData.role || 'viewer';
+            }
+        } catch {
+            userRole = 'viewer';
+        }
+
+        document.getElementById('userEmail').textContent = currentUser.email;
+        document.getElementById('userRole').textContent  = userRole.toUpperCase();
+
+        applyRolePermissions();
+        showMainApp();
+    }
+
+    // ============================================================
+    // ROLE PERMISSIONS
+    // viewer  — can only view dashboard and gate passes
+    // user    — can create gate passes, manage customers/products; cannot access settings
+    // admin   — full access including settings and delete
+    // Matches invoice app permission pattern exactly
+    // ============================================================
+    function applyRolePermissions() {
+        if (!userRole) userRole = 'viewer';
+
+        if (userRole === 'viewer') {
+            // Hide: Create Gate Pass, Customers, Products, Settings
+            document.querySelectorAll('[data-page="createGatePass"]').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('[data-page="customers"]').forEach(el => el.style.display    = 'none');
+            document.querySelectorAll('[data-page="products"]').forEach(el => el.style.display     = 'none');
+            document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display     = 'none');
+        } else if (userRole === 'user') {
+            // Hide: Settings only
+            document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display = 'none');
+        }
+        // admin sees everything
+    }
+
+    // ============================================================
+    // SIDEBAR — openNav / closeNav
+    // Exact same pattern as invoice app
+    // ============================================================
+    function openNav() {
+        document.getElementById('mySidebar').style.width = '250px';
+        const mc = document.querySelector('.main-content');
+        if (mc && window.innerWidth > 768) {
+            mc.style.marginLeft = '250px';
+        }
+    }
+
+    function closeNav() {
+        document.getElementById('mySidebar').style.width = '0';
+        const mc = document.querySelector('.main-content');
+        if (mc) {
+            mc.style.marginLeft = '0';
+        }
+    }
+
+    // ============================================================
+    // PAGE NAVIGATION — Matches invoice app exactly
+    // closeNav() is called at the top of showPage
+    // ============================================================
+    function showPage(pageName) {
+        closeNav();
+
+        // Update nav highlights
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        const navEl = document.querySelector(`[data-page="${pageName}"]`);
+        if (navEl) navEl.classList.add('active');
+
+        // Show target page, hide others
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const pageEl = document.getElementById(pageName);
+        if (pageEl) pageEl.classList.add('active');
+
+        // Page-specific refresh
+        if      (pageName === 'viewGatePasses') loadAllGatePasses();
+        else if (pageName === 'customers')      loadCustomers();
+        else if (pageName === 'products')       loadProducts();
+        else if (pageName === 'createGatePass') {
+            // If editingGpId is set, editGatePass() already populated the form — don't reset
+            if (!editingGpId) resetGatePassForm();
+        }
+        else if (pageName === 'settings')       loadSettingsForm();
+        else if (pageName === 'dashboard')      updateDashboard();
+    }
+
+    // ============================================================
+    // LOAD ALL DATA ON APP START
+    // ============================================================
+    async function loadAllData() {
+        await loadSettings();
+        await loadCustomers();
+        await loadProducts();
+        await loadAllGatePasses();
+        loadSettingsForm();
+    }
+
+    // ============================================================
+    // SETTINGS — Firebase /gpSettings
+    // ============================================================
+    async function loadSettings() {
+        try {
+            const snap = await database.ref('gatePassSettings').once('value');
+            settings   = snap.val() || getDefaultSettings();
+        } catch {
+            settings = getDefaultSettings();
+        }
+        generateGpNumber(document.getElementById('gatePassType').value);
+    }
+
+    function getDefaultSettings() {
+        return {
+            companyName:    'R.R.CASTINGS',
+            gstin:          '36AAJFR8356D1ZY',
+            address:        'Plot no. 150, Phase III, TSIICL, Industrial Park Pashamylaram, Sangareddy Dist, Telangana - 502307',
+            phone:          '90002 06880',
+            email:          'ravirrsankar@gmail.com',
+            state:          'Telangana',
+            inwardPrefix:   'RRC-IN-',
+            nextInwardNo:   1,
+            outwardPrefix:  'RRC-OUT-',
+            nextOutwardNo:  1
+        };
+    }
+
+    function loadSettingsForm() {
+        if (!settings) return;
+        document.getElementById('settingCompanyName').value    = settings.companyName    || '';
+        document.getElementById('settingGSTIN').value          = settings.gstin          || '';
+        document.getElementById('settingAddress').value        = settings.address        || '';
+        document.getElementById('settingPhone').value          = settings.phone          || '';
+        document.getElementById('settingEmail').value          = settings.email          || '';
+        document.getElementById('settingState').value          = settings.state          || '';
+        document.getElementById('settingInwardPrefix').value   = settings.inwardPrefix   || 'RRC-IN-';
+        document.getElementById('settingNextInwardNo').value   = settings.nextInwardNo   || 1;
+        document.getElementById('settingOutwardPrefix').value  = settings.outwardPrefix  || 'RRC-OUT-';
+        document.getElementById('settingNextOutwardNo').value  = settings.nextOutwardNo  || 1;
+    }
+
+    async function saveSettings() {
+        // Only admin can save settings — matches invoice app
+        if (userRole !== 'admin') {
+            alert('Only admins can modify settings.');
+            return;
+        }
+
+        const newSettings = {
+            companyName:   document.getElementById('settingCompanyName').value.trim(),
+            gstin:         document.getElementById('settingGSTIN').value.trim(),
+            address:       document.getElementById('settingAddress').value.trim(),
+            phone:         document.getElementById('settingPhone').value.trim(),
+            email:         document.getElementById('settingEmail').value.trim(),
+            state:         document.getElementById('settingState').value.trim(),
+            inwardPrefix:  document.getElementById('settingInwardPrefix').value.trim(),
+            nextInwardNo:  parseInt(document.getElementById('settingNextInwardNo').value) || 1,
+            outwardPrefix: document.getElementById('settingOutwardPrefix').value.trim(),
+            nextOutwardNo: parseInt(document.getElementById('settingNextOutwardNo').value) || 1
+        };
+
+        if (!newSettings.companyName) { alert('Company name is required.'); return; }
+
+        try {
+            await database.ref('gatePassSettings').set(newSettings);
+            settings = newSettings;
+            generateGpNumber(document.getElementById('gatePassType').value);
+            alert('Settings saved successfully!');
+        } catch (err) {
+            alert('Error saving settings: ' + err.message);
+        }
+    }
+
+    // ============================================================
+    // AUTO GATE PASS NUMBER GENERATION
+    // Format: PREFIX + zero-padded 4-digit number (e.g. RRC-IN-0042)
+    // Prefix and counter come from settings
+    // ============================================================
+    function generateGpNumber(type) {
+        const isOut  = (type === 'OUTWARD');
+        const prefix = isOut ? (settings.outwardPrefix || 'RRC-OUT-') : (settings.inwardPrefix  || 'RRC-IN-');
+        const num    = isOut ? (settings.nextOutwardNo  || 1)         : (settings.nextInwardNo   || 1);
+        document.getElementById('gatePassNumber').value = prefix + String(num).padStart(4, '0');
+    }
+
+    function onTypeChange() {
+        generateGpNumber(document.getElementById('gatePassType').value);
+    }
+
+    // ============================================================
+    // WEIGHT DIFFERENCE AUTO-CALCULATION
+    // Difference = Our Weight − Customer's Weight
+    // ============================================================
+    function calcWeightDiff() {
+        const cw   = parseFloat(document.getElementById('customerWeight').value) || 0;
+        const ow   = parseFloat(document.getElementById('ourWeight').value) || 0;
+        const diff = ow - cw;
+        const el   = document.getElementById('weightDifference');
+
+        if (cw || ow) {
+            el.value              = diff.toFixed(3);
+            el.style.color        = diff < 0 ? '#C41E3A' : '#28A745';
+            el.style.fontWeight   = 'bold';
+        } else {
+            el.value = '';
+            el.style.color = '';
+        }
+    }
+
+    // ============================================================
+    // CUSTOMERS — Load, Populate Select, Render Table
+    // ============================================================
+    async function loadCustomers() {
+        try {
+            const snap = await database.ref('customers').once('value');
+            const data = snap.val();
+            allCustomers = data
+                ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
+                : [];
+
+            // Populate gate pass form dropdown
+            const sel = document.getElementById('customerSelect');
+            sel.innerHTML = '<option value="">-- Select Customer --</option>';
+            allCustomers.forEach(c => {
+                sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+
+            // Render customers table
+            const tbody = document.getElementById('customersTable');
+            if (allCustomers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
+            } else {
+                tbody.innerHTML = allCustomers.map(c => `
+                    <tr>
+                        <td>${c.name || ''}</td>
+                        <td>${c.gstin || '-'}</td>
+                        <td>${c.phone || '-'}</td>
+                        <td>${c.state || '-'}</td>
+                        <td class="action-buttons">
+                            <button class="btn btn-sm btn-secondary" onclick="editCustomer('${c.id}')">Edit</button>
+                            ${userRole === 'admin'
+                                ? `<button class="btn btn-sm" style="background-color:var(--primary-red);color:white;" onclick="deleteCustomer('${c.id}')">Delete</button>`
+                                : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        } catch (err) {
+            console.error('Error loading customers:', err);
+        }
+    }
+
+    function fillCustomerDetails() {
+        const id = document.getElementById('customerSelect').value;
+        if (!id) return;
+        const c = allCustomers.find(c => c.id === id);
+        if (c) {
+            document.getElementById('customerName').value    = c.name    || '';
+            document.getElementById('customerPhone').value   = c.phone   || '';
+            document.getElementById('customerAddress').value = c.address || '';
+        }
+    }
+
+    function showAddCustomerModal() {
+        if (userRole === 'viewer') { alert('Viewers cannot add customers.'); return; }
+        document.getElementById('customerModalTitle').textContent = 'Add New Customer';
+        document.getElementById('customerForm').reset();
+        document.getElementById('editCustomerId').value = '';
+        document.getElementById('customerModal').style.display = 'block';
+    }
+
+    function editCustomer(id) {
+        if (userRole === 'viewer') { alert('Viewers cannot edit customers.'); return; }
+        const c = allCustomers.find(c => c.id === id);
+        if (!c) return;
+        document.getElementById('customerModalTitle').textContent = 'Edit Customer';
+        document.getElementById('editCustomerId').value       = id;
+        document.getElementById('newCustomerName').value      = c.name    || '';
+        document.getElementById('newCustomerGSTIN').value     = c.gstin   || '';
+        document.getElementById('newCustomerPAN').value       = c.pan     || '';
+        document.getElementById('newCustomerAddress').value   = c.address || '';
+        document.getElementById('newCustomerPhone').value     = c.phone   || '';
+        document.getElementById('newCustomerState').value     = c.state   || '';
+        document.getElementById('customerModal').style.display = 'block';
+    }
+
+    async function deleteCustomer(id) {
+        if (userRole !== 'admin') { alert('Only admins can delete customers.'); return; }
+        if (!confirm('Delete this customer?')) return;
+        try {
+            await database.ref(`customers/${id}`).remove();
+            alert('Customer deleted successfully.');
+            loadCustomers();
+        } catch (err) {
+            alert('Error deleting customer: ' + err.message);
+        }
+    }
+
+    async function saveCustomer(e) {
+        e.preventDefault();
+        const data = {
+            name:    document.getElementById('newCustomerName').value.trim(),
+            gstin:   document.getElementById('newCustomerGSTIN').value.trim(),
+            pan:     document.getElementById('newCustomerPAN').value.trim(),
+            address: document.getElementById('newCustomerAddress').value.trim(),
+            phone:   document.getElementById('newCustomerPhone').value.trim(),
+            state:   document.getElementById('newCustomerState').value.trim()
+        };
+        try {
+            const editId = document.getElementById('editCustomerId').value;
+            if (editId) {
+                await database.ref(`customers/${editId}`).update(data);
+                alert('Customer updated successfully.');
+            } else {
+                await database.ref('customers').push(data);
+                alert('Customer added successfully.');
+            }
+            closeCustomerModal();
+            loadCustomers();
+        } catch (err) {
+            alert('Error saving customer: ' + err.message);
+        }
+    }
+
+    function closeCustomerModal() {
+        document.getElementById('customerModal').style.display = 'none';
+    }
+
+    // ============================================================
+    // PRODUCTS — Load, Render Table
+    // (No single productSelect to populate — items table uses per-row dropdowns)
+    // ============================================================
+    async function loadProducts() {
+        try {
+            const snap = await database.ref('products').once('value');
+            const data = snap.val();
+            allProducts = data
+                ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
+                : [];
+
+            // Render products management table
+            const tbody = document.getElementById('productsTable');
+            if (allProducts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No products found</td></tr>';
+            } else {
+                tbody.innerHTML = allProducts.map(p => `
+                    <tr>
+                        <td>${p.name || ''}</td>
+                        <td>${p.unit || 'kg'}</td>
+                        <td>${p.hsn  || '-'}</td>
+                        <td>${p.description || '-'}</td>
+                        <td class="action-buttons">
+                            <button class="btn btn-sm btn-secondary" onclick="editProduct('${p.id}')">Edit</button>
+                            ${userRole === 'admin'
+                                ? `<button class="btn btn-sm" style="background-color:var(--primary-red);color:white;" onclick="deleteProduct('${p.id}')">Delete</button>`
+                                : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        } catch (err) {
+            console.error('Error loading products:', err);
+        }
+    }
+
+    // Build the options HTML for per-row product dropdowns
+    function buildProductOptions() {
+        return '<option value="">-- Select --</option>' +
+            allProducts.map(p =>
+                `<option value="${p.id}" data-unit="${p.unit || 'kg'}">${p.name} (${p.unit || 'kg'})</option>`
+            ).join('');
+    }
+
+    function showAddProductModal() {
+        if (userRole === 'viewer') { alert('Viewers cannot add products.'); return; }
+        document.getElementById('productModalTitle').textContent = 'Add New Product';
+        document.getElementById('productForm').reset();
+        document.getElementById('editProductId').value = '';
+        document.getElementById('productModal').style.display = 'block';
+    }
+
+    function editProduct(id) {
+        if (userRole === 'viewer') { alert('Viewers cannot edit products.'); return; }
+        const p = allProducts.find(p => p.id === id);
+        if (!p) return;
+        document.getElementById('productModalTitle').textContent = 'Edit Product';
+        document.getElementById('editProductId').value          = id;
+        document.getElementById('newProductName').value         = p.name        || '';
+        document.getElementById('newProductUnit').value         = p.unit        || 'kg';
+        document.getElementById('newProductHSN').value          = p.hsn         || '';
+        document.getElementById('newProductDescription').value  = p.description || '';
+        document.getElementById('productModal').style.display   = 'block';
+    }
+
+    async function deleteProduct(id) {
+        if (userRole !== 'admin') { alert('Only admins can delete products.'); return; }
+        if (!confirm('Delete this product?')) return;
+        try {
+            await database.ref(`products/${id}`).remove();
+            alert('Product deleted successfully.');
+            loadProducts();
+        } catch (err) {
+            alert('Error deleting product: ' + err.message);
+        }
+    }
+
+    async function saveProduct(e) {
+        e.preventDefault();
+        const data = {
+            name:        document.getElementById('newProductName').value.trim(),
+            unit:        document.getElementById('newProductUnit').value,
+            hsn:         document.getElementById('newProductHSN').value.trim(),
+            description: document.getElementById('newProductDescription').value.trim()
+        };
+        try {
+            const editId = document.getElementById('editProductId').value;
+            if (editId) {
+                await database.ref(`products/${editId}`).update(data);
+                alert('Product updated successfully.');
+            } else {
+                await database.ref('products').push(data);
+                alert('Product added successfully.');
+            }
+            closeProductModal();
+            loadProducts();
+        } catch (err) {
+            alert('Error saving product: ' + err.message);
+        }
+    }
+
+    function closeProductModal() {
+        document.getElementById('productModal').style.display = 'none';
+    }
+
+    // ============================================================
+    // GATE PASS — Save (Create / Update)
+    // ============================================================
+    async function saveGatePass(e) {
+        e.preventDefault();
+        if (userRole === 'viewer') { alert('Viewers cannot create gate passes.'); return; }
+
+        // Collect items from the dynamic items table
+        const rows  = document.querySelectorAll('#itemsTableBody tr');
+        const items = [];
+        let itemError = false;
+        rows.forEach((row, idx) => {
+            const name   = row.querySelector('.item-name').value.trim();
+            const unit   = row.querySelector('.item-unit').value.trim() || 'kg';
+            const qty    = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const amount = row.querySelector('.item-amount').value.trim();
+            if (!name) {
+                showGpAlert(`Item row ${idx + 1}: Product name is required.`, 'error');
+                itemError = true;
+                return;
+            }
+            items.push({ productName: name, productUnit: unit, qtyWeight: qty, amount: amount ? parseFloat(amount) : '' });
+        });
+        if (itemError) return;
+        if (items.length === 0) { showGpAlert('Please add at least one product / item.', 'error'); return; }
+
+        showGpAlert('Saving...', 'info');
+
+        const type = document.getElementById('gatePassType').value;
+        const data = {
+            gatePassNumber:  document.getElementById('gatePassNumber').value.trim(),
+            type:            type,
+            date:            document.getElementById('gatePassDate').value,
+            customerName:    document.getElementById('customerName').value.trim(),
+            customerPhone:   document.getElementById('customerPhone').value.trim(),
+            customerAddress: document.getElementById('customerAddress').value.trim(),
+            items:           items,
+            vehicleNumber:   document.getElementById('vehicleNumber').value.trim(),
+            weighbridgeNo:   document.getElementById('weighbridgeNumber').value.trim(),
+            customerWeight:  parseFloat(document.getElementById('customerWeight').value) || 0,
+            ourWeight:       parseFloat(document.getElementById('ourWeight').value) || 0,
+            weightDiff:      parseFloat(document.getElementById('weightDifference').value) || 0,
+            remarks:         document.getElementById('remarks').value.trim(),
+            createdBy:       currentUser.email,
+            updatedAt:       new Date().toISOString()
+        };
+
+        if (!data.customerName) { showGpAlert('Customer name is required.', 'error'); return; }
+        if (!data.date)         { showGpAlert('Date is required.',           'error'); return; }
+
+        try {
+            if (editingGpId) {
+                await database.ref(`gatePasses/${editingGpId}`).update(data);
+                alert('Gate Pass updated successfully!');
+                showGpAlert('Gate Pass updated: ' + data.gatePassNumber, 'success');
+                editingGpId = null;
+                document.getElementById('saveGatePassBtn').textContent = '💾 Save Gate Pass';
+                document.getElementById('saveGatePassBtn').style.backgroundColor = '';
+            } else {
+                data.createdAt = new Date().toISOString();
+                await database.ref('gatePasses').push(data);
+
+                if (type === 'OUTWARD') {
+                    settings.nextOutwardNo = (settings.nextOutwardNo || 1) + 1;
+                    await database.ref('gatePassSettings/nextOutwardNo').set(settings.nextOutwardNo);
+                } else {
+                    settings.nextInwardNo = (settings.nextInwardNo || 1) + 1;
+                    await database.ref('gatePassSettings/nextInwardNo').set(settings.nextInwardNo);
+                }
+
+                alert('Gate Pass saved! Number: ' + data.gatePassNumber);
+                showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
+                resetGatePassForm();
+            }
+
+            await loadAllGatePasses();
+            updateDashboard();
+
+        } catch (err) {
+            alert('Error saving gate pass: ' + err.message);
+            showGpAlert('Error: ' + err.message, 'error');
+        }
+    }
+
+    function showGpAlert(msg, type) {
+        document.getElementById('gatePassAlert').innerHTML =
+            `<div class="alert alert-${type}">${msg}</div>`;
+        if (type === 'success') {
+            setTimeout(() => {
+                document.getElementById('gatePassAlert').innerHTML = '';
+            }, 4000);
+        }
+    }
+
+    function resetGatePassForm() {
+        const type = document.getElementById('gatePassType').value;
+        document.getElementById('gatePassForm').reset();
+        document.getElementById('gatePassDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('gatePassType').value = type;
+        document.getElementById('weightDifference').style.color = '';
+        editingGpId = null;
+        document.getElementById('saveGatePassBtn').textContent           = '💾 Save Gate Pass';
+        document.getElementById('saveGatePassBtn').style.backgroundColor = '';
+        // Clear items and start with one blank row
+        document.getElementById('itemsTableBody').innerHTML = '';
+        addItemRow();
+        generateGpNumber(type);
+    }
+
+    // ============================================================
+    // GATE PASS — Load All from Firebase
+    // ============================================================
+    async function loadAllGatePasses() {
+        try {
+            const snap = await database.ref('gatePasses').once('value');
+            const data = snap.val();
+            allGatePasses = data
+                ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
+                : [];
+
+            // Sort descending by date
+            allGatePasses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+            populateYearFilter();
+            displayGatePasses(allGatePasses);
+            updateDashboard();
+        } catch (err) {
+            console.error('Error loading gate passes:', err);
+        }
+    }
+
+    // ============================================================
+    // GATE PASS — Render Table
+    // ============================================================
+  
+function displayGatePasses(passes) {
+    const tbody = document.getElementById('allGatePassesTable');
+    if (!passes || passes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No gate passes found</td></tr>';
+        return;
+    }
+    try {
+        tbody.innerHTML = passes.map(gp => {
+            const itemSummary   = getItemsSummary(gp);
+            const items         = getItemsArray(gp);
+            let weightDisplay   = '-';
+            if (items.length > 0) {
+                const first = items[0];
+                const val   = (first.qtyWeight || 0) + ' ' + (first.productUnit || 'kg');
+                weightDisplay = items.length > 1
+                    ? val + ' <span style="color:#888;font-size:12px;">(+' + (items.length - 1) + ' more)</span>'
+                    : val;
+            }
+            return `
+            <tr>
+                <td><strong>${gp.gatePassNumber || '-'}</strong></td>
+                <td>${formatDate(gp.date)}</td>
+                <td><span class="${gp.type === 'INWARD' ? 'badge-inward' : 'badge-outward'}">${gp.type || '-'}</span></td>
+                <td>${gp.customerName || '-'}</td>
+                <td>${itemSummary}</td>
+                <td>${weightDisplay}</td>
+                <td>${gp.vehicleNumber || '-'}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-sm btn-secondary" onclick="viewGatePass('${gp.id}')">View</button>
+                    ${userRole !== 'viewer'
+                        ? `<button class="btn btn-sm btn-warning" onclick="editGatePass('${gp.id}')">Edit</button>`
+                        : ''}
+                    ${userRole === 'admin'
+                        ? `<button class="btn btn-sm" style="background-color:var(--primary-red);color:white;" onclick="deleteGatePass('${gp.id}')">Delete</button>`
+                        : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    } catch(err) {
+        console.error('Error rendering gate passes table:', err);
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:red;">Error displaying gate passes. Please refresh.</td></tr>';
+    }
+}
+
+    // ============================================================
+    // GATE PASS — View Details Modal
+    // ============================================================
+    function viewGatePass(id) {
+        const gp = allGatePasses.find(g => g.id === id);
+        if (!gp) return;
+
+        document.getElementById('viewGpModalTitle').textContent =
+            `${gp.type} Gate Pass — ${gp.gatePassNumber || ''}`;
+
+        const diffColor = (gp.weightDiff || 0) < 0 ? '#C41E3A' : '#28A745';
+
+        document.getElementById('viewGpContent').innerHTML = `
+            <div style="border:2px solid var(--border-gray); border-radius:10px; overflow:hidden;">
+
+                <!-- Header -->
+                <div style="background:linear-gradient(135deg,var(--primary-red),var(--primary-purple));
+                            color:white; padding:20px 25px; text-align:center;">
+                    <h2 style="margin:0; font-size:22px;">${settings.companyName || 'RR Castings'}</h2>
+                    ${settings.address ? `<p style="margin:5px 0; font-size:12px; opacity:0.9;">${settings.address}</p>` : ''}
+                    ${settings.phone   ? `<p style="margin:3px 0; font-size:12px; opacity:0.9;">Phone: ${settings.phone}</p>` : ''}
+                </div>
+
+                <!-- Gate Pass Title Banner -->
+                <div style="background:${gp.type === 'INWARD' ? '#d1ecf1' : '#f8d7da'};
+                            color:${gp.type === 'INWARD' ? '#0c5460' : '#721c24'};
+                            padding:12px; text-align:center; letter-spacing:3px; font-weight:700; font-size:20px;">
+                    ${gp.type} GATE PASS
+                </div>
+
+                <div style="padding:25px;">
+                    <!-- GP Number & Date -->
+                    <div class="gp-detail-grid">
+                        <div>
+                            <div class="gp-field-label">Gate Pass Number</div>
+                            <div class="gp-field-value" style="color:var(--primary-purple);font-size:20px;">
+                                ${gp.gatePassNumber || '-'}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Date</div>
+                            <div class="gp-field-value">${formatDate(gp.date)}</div>
+                        </div>
+                    </div>
+
+                    <hr style="border-color:var(--border-gray); margin:15px 0;">
+
+                    <!-- Customer -->
+                    <h3 style="color:var(--primary-red); margin-bottom:12px;">Customer Details</h3>
+                    <div class="gp-detail-grid">
+                        <div>
+                            <div class="gp-field-label">Customer Name</div>
+                            <div class="gp-field-value">${gp.customerName || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Phone</div>
+                            <div class="gp-field-value">${gp.customerPhone || '-'}</div>
+                        </div>
+                        <div style="grid-column:1/-1;">
+                            <div class="gp-field-label">Address</div>
+                            <div class="gp-field-value">${gp.customerAddress || '-'}</div>
+                        </div>
+                    </div>
+
+                    <hr style="border-color:var(--border-gray); margin:15px 0;">
+
+                    <!-- Products / Items table -->
+                    <h3 style="color:var(--primary-red); margin-bottom:12px;">Product / Item Details</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:14px;border:1px solid var(--border-gray);border-radius:6px;overflow:hidden;">
+                        <thead>
+                            <tr style="background:var(--primary-purple);color:white;">
+                                <th style="padding:8px 12px;text-align:left;font-weight:600;">S.No.</th>
+                                <th style="padding:8px 12px;text-align:left;font-weight:600;">Product / Item</th>
+                                <th style="padding:8px 12px;text-align:left;font-weight:600;">Unit</th>
+                                <th style="padding:8px 12px;text-align:right;font-weight:600;">Weight / Qty</th>
+                                <th style="padding:8px 12px;text-align:right;font-weight:600;">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${getItemsArray(gp).map((item, i) => `
+                                <tr style="border-bottom:1px solid #eee;${i%2===1?'background:#fafafa':''}">
+                                    <td style="padding:8px 12px;color:#888;">${i+1}</td>
+                                    <td style="padding:8px 12px;font-weight:600;">${item.productName || '-'}</td>
+                                    <td style="padding:8px 12px;">${item.productUnit || 'kg'}</td>
+                                    <td style="padding:8px 12px;text-align:right;font-weight:700;">${item.qtyWeight || 0} ${item.productUnit || 'kg'}</td>
+                                    <td style="padding:8px 12px;text-align:right;font-weight:600;">${item.amount !== '' && item.amount !== undefined && item.amount !== null ? '₹' + Number(item.amount).toFixed(2) : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <hr style="border-color:var(--border-gray); margin:15px 0;">
+
+                    <!-- Vehicle & Weighbridge -->
+                    <h3 style="color:var(--primary-red); margin-bottom:12px;">Vehicle & Weighbridge</h3>
+                    <div class="gp-detail-grid">
+                        <div>
+                            <div class="gp-field-label">Vehicle Number</div>
+                            <div class="gp-field-value">${gp.vehicleNumber || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Weighbridge Number</div>
+                            <div class="gp-field-value">${gp.weighbridgeNo || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Customer's Weight</div>
+                            <div class="gp-field-value">${gp.customerWeight || 0} kg</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Our Weight</div>
+                            <div class="gp-field-value">${gp.ourWeight || 0} kg</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Weight Difference (Our − Customer)</div>
+                            <div class="gp-field-value" style="color:${diffColor};">
+                                ${gp.weightDiff || 0} kg
+                            </div>
+                        </div>
+                    </div>
+
+                    ${gp.remarks ? `
+                    <hr style="border-color:var(--border-gray); margin:15px 0;">
+                    <h3 style="color:var(--primary-red); margin-bottom:8px;">Remarks</h3>
+                    <p>${gp.remarks}</p>` : ''}
+
+                   
+                 <div style="height:60px; border-bottom:1px solid #ccc;"></div>
+                            <p style="font-size:11px; color:#aaa; text-align:center; margin-top:15px;">
+                       		 Created by: ${gp.createdBy || '-'}
+                    </p>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('viewGpModal').style.display = 'block';
+    }
+
+    function closeViewGpModal() {
+        document.getElementById('viewGpModal').style.display = 'none';
+    }
+
+    // ============================================================
+    // GATE PASS — Edit (pre-fill form, navigate to Create page)
+    // ============================================================
+    function editGatePass(id) {
+        if (userRole === 'viewer') { alert('Viewers cannot edit gate passes.'); return; }
+        const gp = allGatePasses.find(g => g.id === id);
+        if (!gp) return;
+
+        editingGpId = id;
+        showPage('createGatePass');
+
+        document.getElementById('gatePassType').value      = gp.type             || 'INWARD';
+        document.getElementById('gatePassNumber').value    = gp.gatePassNumber   || '';
+        document.getElementById('gatePassDate').value      = gp.date             || '';
+        document.getElementById('customerName').value      = gp.customerName     || '';
+        document.getElementById('customerPhone').value     = gp.customerPhone    || '';
+        document.getElementById('customerAddress').value   = gp.customerAddress  || '';
+        document.getElementById('vehicleNumber').value     = gp.vehicleNumber    || '';
+        document.getElementById('weighbridgeNumber').value = gp.weighbridgeNo    || '';
+        document.getElementById('customerWeight').value    = gp.customerWeight   || '';
+        document.getElementById('ourWeight').value         = gp.ourWeight        || '';
+        document.getElementById('weightDifference').value  = gp.weightDiff       || '';
+        document.getElementById('remarks').value           = gp.remarks          || '';
+
+        // Populate items table — handles both old single-product and new items[] format
+        const tbody = document.getElementById('itemsTableBody');
+        tbody.innerHTML = '';
+        const items = getItemsArray(gp);
+        if (items.length > 0) {
+            items.forEach(item => addItemRow(item.productName, item.productUnit, item.qtyWeight, item.amount || ''));
+        } else {
+            addItemRow(); // at least one blank row
+        }
+
+        document.getElementById('saveGatePassBtn').textContent           = '✅ Update Gate Pass';
+        document.getElementById('saveGatePassBtn').style.backgroundColor = 'var(--warning-orange)';
+
+        showGpAlert(`Editing Gate Pass: ${gp.gatePassNumber} — Make changes and click Update.`, 'info');
+    }
+
+    // ============================================================
+    // GATE PASS — Delete
+    // ============================================================
+    async function deleteGatePass(id) {
+        if (userRole !== 'admin') { alert('Only admins can delete gate passes.'); return; }
+        const gp = allGatePasses.find(g => g.id === id);
+        if (!gp) return;
+        if (!confirm(`Delete Gate Pass "${gp.gatePassNumber}"? This cannot be undone.`)) return;
+        try {
+            await database.ref(`gatePasses/${id}`).remove();
+            alert('Gate Pass deleted.');
+            loadAllGatePasses();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // ============================================================
+    // FILTERS — View Gate Passes page
+    // ============================================================
+    function populateYearFilter() {
+        const years = [...new Set(
+            allGatePasses.map(gp => (gp.date || '').split('-')[0]).filter(Boolean)
+        )].sort((a, b) => b - a);
+
+        const sel = document.getElementById('filterYear');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">All Years</option>';
+        years.forEach(y => {
+            sel.innerHTML += `<option value="${y}" ${cur === y ? 'selected' : ''}>${y}</option>`;
+        });
+    }
+
+    function applyFilters() {
+        const gpNo     = document.getElementById('filterGpNo').value.toLowerCase();
+        const customer = document.getElementById('filterCustomer').value.toLowerCase();
+        const type     = document.getElementById('filterType').value;
+        const month    = document.getElementById('filterMonth').value;
+        const year     = document.getElementById('filterYear').value;
+        const from     = document.getElementById('filterFromDate').value;
+        const to       = document.getElementById('filterToDate').value;
+
+        const filtered = allGatePasses.filter(gp => {
+            const matchGp   = !gpNo     || (gp.gatePassNumber || '').toLowerCase().includes(gpNo);
+            const matchCust = !customer || (gp.customerName   || '').toLowerCase().includes(customer);
+            const matchType = !type     || gp.type === type;
+            const matchMon  = !month    || (gp.date || '').split('-')[1] === month;
+            const matchYear = !year     || (gp.date || '').split('-')[0] === year;
+            const matchFrom = !from     || gp.date >= from;
+            const matchTo   = !to       || gp.date <= to;
+            return matchGp && matchCust && matchType && matchMon && matchYear && matchFrom && matchTo;
+        });
+
+        displayGatePasses(filtered);
+    }
+
+    function clearFilters() {
+        ['filterGpNo','filterCustomer','filterType','filterMonth',
+         'filterYear','filterFromDate','filterToDate']
+            .forEach(id => { document.getElementById(id).value = ''; });
+        displayGatePasses(allGatePasses);
+    }
+
+    // ============================================================
+    // EXCEL / CSV DOWNLOAD
+    // Each gate pass with N items produces N rows in the CSV.
+    // ============================================================
+    function downloadExcel() {
+        const gpNo     = document.getElementById('filterGpNo').value.toLowerCase();
+        const customer = document.getElementById('filterCustomer').value.toLowerCase();
+        const type     = document.getElementById('filterType').value;
+        const month    = document.getElementById('filterMonth').value;
+        const year     = document.getElementById('filterYear').value;
+        const from     = document.getElementById('filterFromDate').value;
+        const to       = document.getElementById('filterToDate').value;
+
+        const passes = allGatePasses.filter(gp => {
+            const matchGp   = !gpNo     || (gp.gatePassNumber || '').toLowerCase().includes(gpNo);
+            const matchCust = !customer || (gp.customerName   || '').toLowerCase().includes(customer);
+            const matchType = !type     || gp.type === type;
+            const matchMon  = !month    || (gp.date || '').split('-')[1] === month;
+            const matchYear = !year     || (gp.date || '').split('-')[0] === year;
+            const matchFrom = !from     || gp.date >= from;
+            const matchTo   = !to       || gp.date <= to;
+            return matchGp && matchCust && matchType && matchMon && matchYear && matchFrom && matchTo;
+        });
+
+        if (passes.length === 0) { alert('No gate passes to download.'); return; }
+
+        const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const mLabel   = month ? monthNames[parseInt(month)] : 'All';
+        const yLabel   = year  || new Date().getFullYear();
+        const tLabel   = type  || 'All';
+        const filename = `GatePasses_${tLabel}_${mLabel}_${yLabel}.csv`;
+
+        const headers = [
+            'Gate Pass No.', 'Type', 'Date',
+            'Customer Name', 'Customer Phone', 'Customer Address',
+            'Item #', 'Product Name', 'Unit', 'Weight / Qty', 'Amount (₹)',
+            'Vehicle Number', 'Weighbridge No.',
+            "Customer's Weight (kg)", 'Our Weight (kg)', 'Weight Difference (kg)',
+            'Remarks', 'Created By', 'Created At'
+        ];
+
+        const esc = val => {
+            const s = String(val == null ? '' : val);
+            return (s.includes(',') || s.includes('"') || s.includes('\n'))
+                ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+
+        // Expand each gate pass into one row per item
+        const rows = [];
+        passes.forEach(gp => {
+            const items = getItemsArray(gp);
+            const gpCommon = [
+                gp.gatePassNumber || '', gp.type || '', gp.date || '',
+                gp.customerName || '', gp.customerPhone || '', gp.customerAddress || ''
+            ];
+            const gpTrail = idx => idx === 0 ? [
+                gp.vehicleNumber || '', gp.weighbridgeNo || '',
+                gp.customerWeight || 0, gp.ourWeight || 0, gp.weightDiff || 0,
+                gp.remarks || '', gp.createdBy || '',
+                gp.createdAt ? new Date(gp.createdAt).toLocaleString() : ''
+            ] : ['','','','','','','',''];
+
+            if (items.length === 0) {
+                rows.push([...gpCommon, '', '', '', '', '', ...gpTrail(0)]);
+            } else {
+                items.forEach((item, idx) => {
+                    rows.push([
+                        ...gpCommon,
+                        idx + 1,
+                        item.productName || '',
+                        item.productUnit || '',
+                        item.qtyWeight   || 0,
+                        (item.amount !== '' && item.amount !== undefined && item.amount !== null) ? item.amount : '',
+                        ...gpTrail(idx)
+                    ]);
+                });
+            }
+        });
+
+        const csv = [
+            [`${settings.companyName || 'RR Castings'} - Gate Pass Report`],
+            [`Downloaded on: ${new Date().toLocaleString()}`],
+            [`Filter — Type: ${tLabel}  Month: ${mLabel}  Year: ${yLabel}`],
+            [`Total Gate Passes: ${passes.length}`],
+            [],
+            headers.map(esc),
+            ...rows.map(r => r.map(esc))
+        ].map(row => row.join(',')).join('\n');
+
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    // ============================================================
+    // DASHBOARD — Update Stats & Recent Table
+    // ============================================================
+    function updateDashboard() {
+        const now       = new Date();
+        const thisMonth = now.getMonth();
+        const thisYear  = now.getFullYear();
+
+        const monthPasses = allGatePasses.filter(gp => {
+            if (!gp.date) return false;
+            const d = new Date(gp.date + 'T00:00:00');
+            return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+        });
+
+        const inward  = monthPasses.filter(gp => gp.type === 'INWARD');
+        const outward = monthPasses.filter(gp => gp.type === 'OUTWARD');
+
+        document.getElementById('totalGatePasses').textContent = allGatePasses.length;
+        document.getElementById('monthGatePasses').textContent = monthPasses.length;
+        document.getElementById('inwardCount').textContent     = inward.length;
+        document.getElementById('outwardCount').textContent    = outward.length;
+
+        // Recent 10 gate passes
+        const recent = allGatePasses.slice(0, 10);
+        const tbody  = document.getElementById('recentGatePassesTable');
+        if (recent.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No gate passes yet</td></tr>';
+        } else {
+            try {
+                tbody.innerHTML = recent.map(gp => `
+                    <tr>
+                        <td><strong>${gp.gatePassNumber || '-'}</strong></td>
+                        <td>${formatDate(gp.date)}</td>
+                        <td><span class="${gp.type === 'INWARD' ? 'badge-inward' : 'badge-outward'}">${gp.type || '-'}</span></td>
+                        <td>${gp.customerName || '-'}</td>
+                        <td>${getItemsSummary(gp)}</td>
+                        <td>${gp.vehicleNumber || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch(err) {
+                console.error('Dashboard render error:', err);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Error rendering. Please refresh.</td></tr>';
+            }
+        }
+    }
+
+    // ============================================================
+    // UTILITY — Format date YYYY-MM-DD → DD-MM-YYYY for display
+    // ============================================================
+    function formatDate(d) {
+        if (!d) return '-';
+        const p = d.split('-');
+        return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : d;
+    }
+
+    // ============================================================
+    // MULTI-ITEM TABLE — Helper functions
+    // ============================================================
+
+    // Returns normalised items array regardless of old/new storage format
+    // Firebase stores arrays as plain objects {0:{...}, 1:{...}} — we convert them
+    function getItemsArray(gp) {
+        if (gp.items) {
+            // Convert Firebase object-as-array to a real JS array
+            if (Array.isArray(gp.items)) {
+                return gp.items.filter(Boolean);
+            }
+            // Firebase object format: {0:{...}, 1:{...}}
+            if (typeof gp.items === 'object') {
+                return Object.keys(gp.items)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .map(k => gp.items[k])
+                    .filter(Boolean);
+            }
+        }
+        // Backwards compat: old gate passes stored a single product at root level
+        if (gp.productName) {
+            return [{ productName: gp.productName, productUnit: gp.productUnit || 'kg', qtyWeight: gp.qtyWeight || 0, amount: gp.amount || '' }];
+        }
+        return [];
+    }
+
+    // Short summary string for list views ("Cast Iron" or "Cast Iron +2 more")
+    function getItemsSummary(gp) {
+        try {
+            const items = getItemsArray(gp);
+            if (!items || items.length === 0) return '-';
+            const firstName = (items[0] && items[0].productName) ? items[0].productName : '-';
+            if (items.length === 1) return firstName;
+            return firstName + ' (+' + (items.length - 1) + ' more)';
+        } catch(e) {
+            return '-';
+        }
+    }
+
+    // Add one product row to the items table
+    // Optional pre-fill values used when editing an existing gate pass
+    function addItemRow(productName = '', productUnit = '', qtyWeight = '', amount = '') {
+        const tbody  = document.getElementById('itemsTableBody');
+        const rowNum = tbody.rows.length + 1;
+        const row    = document.createElement('tr');
+
+        row.innerHTML = `
+            <td style="text-align:center;color:#888;font-weight:600;font-size:13px;width:34px;">${rowNum}</td>
+            <td>
+                <select class="item-product-select" onchange="onItemProductSelect(this)">
+                    ${buildProductOptions()}
+                </select>
+            </td>
+            <td><input type="text"   class="item-name" placeholder="Product / Item Name" value="${productName.replace(/"/g,'&quot;')}" required></td>
+            <td><input type="text"   class="item-unit" value="${productUnit}" readonly style="background:#f5f5f5;color:#666;text-align:center;"></td>
+            <td><input type="number" class="item-qty"  step="0.001" min="0" placeholder="0.000" value="${qtyWeight}"></td>
+            <td><input type="number" class="item-amount" step="0.01" min="0" placeholder="Optional" value="${amount}" style="text-align:left;"></td>
+            <td style="text-align:center;">
+                <button type="button" class="item-remove-btn" onclick="removeItemRow(this)" title="Remove item">×</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+        renumberRows();
+    }
+
+    // Remove a row — minimum 1 must remain
+    function removeItemRow(btn) {
+        const tbody = document.getElementById('itemsTableBody');
+        if (tbody.rows.length <= 1) { alert('At least one product / item is required.'); return; }
+        btn.closest('tr').remove();
+        renumberRows();
+    }
+
+    // Renumber the # column after add/remove
+    function renumberRows() {
+        document.querySelectorAll('#itemsTableBody tr').forEach((row, i) => {
+            row.cells[0].textContent = i + 1;
+        });
+    }
+
+    // When user picks from the per-row dropdown, auto-fill name + unit
+    function onItemProductSelect(select) {
+        const pid = select.value;
+        if (!pid) return;
+        const p = allProducts.find(p => p.id === pid);
+        if (!p) return;
+        const row = select.closest('tr');
+        row.querySelector('.item-name').value = p.name || '';
+        row.querySelector('.item-unit').value = p.unit || 'kg';
+    }
+
+    // ============================================================
+    // CLOSE MODALS ON OUTSIDE CLICK (same as invoice app)
+    // ============================================================
+    window.onclick = function (event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+            // If gate pass view modal closed, reset edit state too
+            if (event.target.id === 'viewGpModal') closeViewGpModal();
+        }
+    };
+
+    </script>
+</body>
+</html>
