@@ -1523,8 +1523,7 @@ const firebaseConfig = {
         else if (pageName === 'customers')      loadCustomers();
         else if (pageName === 'products')       loadProducts();
         else if (pageName === 'createGatePass') {
-            // If editingGpId is set, editGatePass() already populated the form — don't reset
-            if (!editingGpId) resetGatePassForm();
+            resetGatePassForm();
         }
         else if (pageName === 'settings')       loadSettingsForm();
         else if (pageName === 'dashboard')      updateDashboard();
@@ -1957,6 +1956,8 @@ async function saveGatePass(e) {
     }
 }
 
+// Reset Gate Pass Form //
+
 function resetGatePassForm() {
         const type = document.getElementById('gatePassType').value;
         document.getElementById('gatePassForm').reset();
@@ -1966,6 +1967,16 @@ function resetGatePassForm() {
         document.getElementById('itemsTableBody').innerHTML     = '';
         addItemRow();
         generateGpNumber(type);
+    }
+
+    function showGpAlert(msg, type) {
+        document.getElementById('gatePassAlert').innerHTML =
+            `<div class="alert alert-${type}">${msg}</div>`;
+        if (type === 'success') {
+            setTimeout(() => {
+                document.getElementById('gatePassAlert').innerHTML = '';
+            }, 4000);
+        }
     }
         
     // ============================================================
