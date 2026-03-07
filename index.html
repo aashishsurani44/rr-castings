@@ -1956,6 +1956,17 @@ async function saveGatePass(e) {
         showGpAlert('Error: ' + err.message, 'error');
     }
 }
+
+function resetGatePassForm() {
+        const type = document.getElementById('gatePassType').value;
+        document.getElementById('gatePassForm').reset();
+        document.getElementById('gatePassDate').value           = new Date().toISOString().split('T')[0];
+        document.getElementById('gatePassType').value           = type;
+        document.getElementById('weightDifference').style.color = '';
+        document.getElementById('itemsTableBody').innerHTML     = '';
+        addItemRow();
+        generateGpNumber(type);
+    }
         
     // ============================================================
     // GATE PASS — Load All from Firebase
