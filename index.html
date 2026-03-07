@@ -1111,6 +1111,141 @@
         </div>
     </div>
 
+    <!-- ============================================================
+     MODAL: EDIT GATE PASS
+============================================================ -->
+<div id="editGpModal" class="modal">
+    <div class="modal-content" style="max-width:900px;">
+        <div class="modal-header">
+            <h2 id="editGpModalTitle">Edit Gate Pass</h2>
+            <button class="close" onclick="closeEditGpModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="editGpAlert"></div>
+            <form id="editGpForm" onsubmit="saveEditGatePass(event)">
+                <input type="hidden" id="editGpId">
+
+                <div class="form-section">
+                    <h2>Gate Pass Type & Number</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Gate Pass Type *</label>
+                            <select id="editGpType" required>
+                                <option value="INWARD">INWARD (Material Coming In)</option>
+                                <option value="OUTWARD">OUTWARD (Material Going Out)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Gate Pass Number</label>
+                            <input type="text" id="editGpNumber" readonly
+                                style="background-color:#f0f0f0; font-weight:bold; font-size:16px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Date *</label>
+                            <input type="date" id="editGpDate" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Customer Information</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Select Pre-loaded Customer</label>
+                            <select id="editGpCustomerSelect" onchange="fillEditCustomerDetails()">
+                                <option value="">-- Select Customer --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Customer Name *</label>
+                            <input type="text" id="editGpCustomerName" placeholder="Enter Customer Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="editGpCustomerPhone" placeholder="Enter Phone Number" maxlength="10">
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" id="editGpCustomerAddress" placeholder="Enter Address">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Product / Item Details</h2>
+                    <div class="items-table-wrap">
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:34px;">#</th>
+                                    <th style="min-width:160px;">Select Product</th>
+                                    <th style="min-width:160px;">Product / Item Name *</th>
+                                    <th style="width:80px;">Unit</th>
+                                    <th style="width:120px;">Weight / Qty *</th>
+                                    <th style="width:120px;">Amount (₹)</th>
+                                    <th style="width:36px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="editItemsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-secondary add-item-btn" onclick="addEditItemRow()">+ Add Item</button>
+                </div>
+
+                <div class="form-section">
+                    <h2>Vehicle & Weighbridge Details</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Vehicle Number</label>
+                            <input type="text" id="editGpVehicleNumber" placeholder="e.g. TS09AB1234"
+                                style="text-transform:uppercase;"
+                                oninput="this.value=this.value.toUpperCase()">
+                        </div>
+                        <div class="form-group">
+                            <label>Weighbridge Number</label>
+                            <input type="text" id="editGpWeighbridgeNumber" placeholder="Enter Weighbridge / Slip No.">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Customer's Weight (kg)</label>
+                            <input type="number" step="0.001" id="editGpCustomerWeight"
+                                placeholder="Weight as per customer" oninput="calcEditWeightDiff()">
+                        </div>
+                        <div class="form-group">
+                            <label>Our Weight (kg)</label>
+                            <input type="number" step="0.001" id="editGpOurWeight"
+                                placeholder="Weight as per our weighbridge" oninput="calcEditWeightDiff()">
+                        </div>
+                        <div class="form-group">
+                            <label>Weight Difference (Our − Customer)</label>
+                            <input type="text" id="editGpWeightDifference" readonly
+                                style="background-color:#f0f0f0; font-weight:bold;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Remarks / Notes</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Additional Remarks</label>
+                            <textarea id="editGpRemarks" rows="3" placeholder="Any additional notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:15px; justify-content:flex-end; flex-wrap:wrap; margin-top:10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditGpModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background-color:var(--warning-orange);">✅ Update Gate Pass</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
     <!-- ============================================================
          FIREBASE SDK — Same version as Invoice App
@@ -1742,114 +1877,86 @@ const firebaseConfig = {
     }
 
     // ============================================================
-    // GATE PASS — Save (Create / Update)
-    // ============================================================
-    async function saveGatePass(e) {
-        e.preventDefault();
-        if (userRole === 'viewer') { alert('Viewers cannot create gate passes.'); return; }
+// GATE PASS — Save NEW only (editing handled by editGpModal)
+// ============================================================
+async function saveGatePass(e) {
+    e.preventDefault();
+    if (userRole === 'viewer') { alert('Viewers cannot create gate passes.'); return; }
 
-        // Collect items from the dynamic items table
-        const rows  = document.querySelectorAll('#itemsTableBody tr');
-        const items = [];
-        let itemError = false;
-        rows.forEach((row, idx) => {
-            const name   = row.querySelector('.item-name').value.trim();
-            const unit   = row.querySelector('.item-unit').value.trim() || 'kg';
-            const qty    = parseFloat(row.querySelector('.item-qty').value) || 0;
-            const amount = row.querySelector('.item-amount').value.trim();
-            if (!name) {
-                showGpAlert(`Item row ${idx + 1}: Product name is required.`, 'error');
-                itemError = true;
-                return;
-            }
-            items.push({ productName: name, productUnit: unit, qtyWeight: qty, amount: amount ? parseFloat(amount) : '' });
-        });
-        if (itemError) return;
-        if (items.length === 0) { showGpAlert('Please add at least one product / item.', 'error'); return; }
-
-        showGpAlert('Saving...', 'info');
-
-        const type = document.getElementById('gatePassType').value;
-        const data = {
-            gatePassNumber:  document.getElementById('gatePassNumber').value.trim(),
-            type:            type,
-            date:            document.getElementById('gatePassDate').value,
-            customerName:    document.getElementById('customerName').value.trim(),
-            customerPhone:   document.getElementById('customerPhone').value.trim(),
-            customerAddress: document.getElementById('customerAddress').value.trim(),
-            items:           items,
-            vehicleNumber:   document.getElementById('vehicleNumber').value.trim(),
-            weighbridgeNo:   document.getElementById('weighbridgeNumber').value.trim(),
-            customerWeight:  parseFloat(document.getElementById('customerWeight').value) || 0,
-            ourWeight:       parseFloat(document.getElementById('ourWeight').value) || 0,
-            weightDiff:      parseFloat(document.getElementById('weightDifference').value) || 0,
-            remarks:         document.getElementById('remarks').value.trim(),
-            createdBy:       currentUser.email,
-            updatedAt:       new Date().toISOString()
-        };
-
-        if (!data.customerName) { showGpAlert('Customer name is required.', 'error'); return; }
-        if (!data.date)         { showGpAlert('Date is required.',           'error'); return; }
-
-        try {
-            if (editingGpId) {
-                await database.ref(`gatePasses/${editingGpId}`).update(data);
-                alert('Gate Pass updated successfully!');
-                showGpAlert('Gate Pass updated: ' + data.gatePassNumber, 'success');
-                editingGpId = null;
-                document.getElementById('saveGatePassBtn').textContent = '💾 Save Gate Pass';
-                document.getElementById('saveGatePassBtn').style.backgroundColor = '';
-            } else {
-                data.createdAt = new Date().toISOString();
-                await database.ref('gatePasses').push(data);
-
-                if (type === 'OUTWARD') {
-                    settings.nextOutwardNo = (settings.nextOutwardNo || 1) + 1;
-                    await database.ref('gatePassSettings/nextOutwardNo').set(settings.nextOutwardNo);
-                } else {
-                    settings.nextInwardNo = (settings.nextInwardNo || 1) + 1;
-                    await database.ref('gatePassSettings/nextInwardNo').set(settings.nextInwardNo);
-                }
-
-                alert('Gate Pass saved! Number: ' + data.gatePassNumber);
-                showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
-                resetGatePassForm();
-            }
-
-            await loadAllGatePasses();
-            updateDashboard();
-
-        } catch (err) {
-            alert('Error saving gate pass: ' + err.message);
-            showGpAlert('Error: ' + err.message, 'error');
+    const rows  = document.querySelectorAll('#itemsTableBody tr');
+    const items = [];
+    let itemError = false;
+    rows.forEach((row, idx) => {
+        const name   = row.querySelector('.item-name').value.trim();
+        const unit   = row.querySelector('.item-unit').value.trim() || 'kg';
+        const qty    = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const amount = row.querySelector('.item-amount').value.trim();
+        if (!name) {
+            showGpAlert(`Item row ${idx + 1}: Product name is required.`, 'error');
+            itemError = true;
+            return;
         }
+        items.push({ productName: name, productUnit: unit, qtyWeight: qty, amount: amount ? parseFloat(amount) : '' });
+    });
+    if (itemError) return;
+    if (items.length === 0) { showGpAlert('Please add at least one product / item.', 'error'); return; }
+
+    const type     = document.getElementById('gatePassType').value;
+    const gpNumber = document.getElementById('gatePassNumber').value.trim();
+
+    const duplicate = allGatePasses.find(gp => gp.gatePassNumber === gpNumber);
+    if (duplicate) {
+        showGpAlert(`❌ Gate Pass number "${gpNumber}" already exists. Click Reset to get a new number.`, 'error');
+        return;
     }
 
-    function showGpAlert(msg, type) {
-        document.getElementById('gatePassAlert').innerHTML =
-            `<div class="alert alert-${type}">${msg}</div>`;
-        if (type === 'success') {
-            setTimeout(() => {
-                document.getElementById('gatePassAlert').innerHTML = '';
-            }, 4000);
+    showGpAlert('Saving...', 'info');
+
+    const data = {
+        gatePassNumber:  gpNumber,
+        type:            type,
+        date:            document.getElementById('gatePassDate').value,
+        customerName:    document.getElementById('customerName').value.trim(),
+        customerPhone:   document.getElementById('customerPhone').value.trim(),
+        customerAddress: document.getElementById('customerAddress').value.trim(),
+        items:           items,
+        vehicleNumber:   document.getElementById('vehicleNumber').value.trim(),
+        weighbridgeNo:   document.getElementById('weighbridgeNumber').value.trim(),
+        customerWeight:  parseFloat(document.getElementById('customerWeight').value) || 0,
+        ourWeight:       parseFloat(document.getElementById('ourWeight').value) || 0,
+        weightDiff:      parseFloat(document.getElementById('weightDifference').value) || 0,
+        remarks:         document.getElementById('remarks').value.trim(),
+        createdBy:       currentUser.email,
+        createdAt:       new Date().toISOString(),
+        updatedAt:       new Date().toISOString()
+    };
+
+    if (!data.customerName) { showGpAlert('Customer name is required.', 'error'); return; }
+    if (!data.date)         { showGpAlert('Date is required.',           'error'); return; }
+
+    try {
+        await database.ref('gatePasses').push(data);
+
+        if (type === 'OUTWARD') {
+            settings.nextOutwardNo = (settings.nextOutwardNo || 1) + 1;
+            await database.ref('gatePassSettings/nextOutwardNo').set(settings.nextOutwardNo);
+        } else {
+            settings.nextInwardNo = (settings.nextInwardNo || 1) + 1;
+            await database.ref('gatePassSettings/nextInwardNo').set(settings.nextInwardNo);
         }
-    }
 
-    function resetGatePassForm() {
-        const type = document.getElementById('gatePassType').value;
-        document.getElementById('gatePassForm').reset();
-        document.getElementById('gatePassDate').value = new Date().toISOString().split('T')[0];
-        document.getElementById('gatePassType').value = type;
-        document.getElementById('weightDifference').style.color = '';
-        editingGpId = null;
-        document.getElementById('saveGatePassBtn').textContent           = '💾 Save Gate Pass';
-        document.getElementById('saveGatePassBtn').style.backgroundColor = '';
-        // Clear items and start with one blank row
-        document.getElementById('itemsTableBody').innerHTML = '';
-        addItemRow();
-        generateGpNumber(type);
-    }
+        alert('Gate Pass saved! Number: ' + data.gatePassNumber);
+        showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
+        resetGatePassForm();
+        await loadAllGatePasses();
+        updateDashboard();
 
+    } catch (err) {
+        alert('Error saving gate pass: ' + err.message);
+        showGpAlert('Error: ' + err.message, 'error');
+    }
+}
+        
     // ============================================================
     // GATE PASS — Load All from Firebase
     // ============================================================
@@ -2061,45 +2168,201 @@ function displayGatePasses(passes) {
         document.getElementById('viewGpModal').style.display = 'none';
     }
 
-    // ============================================================
-    // GATE PASS — Edit (pre-fill form, navigate to Create page)
-    // ============================================================
-    function editGatePass(id) {
-        if (userRole === 'viewer') { alert('Viewers cannot edit gate passes.'); return; }
-        const gp = allGatePasses.find(g => g.id === id);
-        if (!gp) return;
+// ============================================================
+// GATE PASS — Edit (opens modal)
+// ============================================================
+function editGatePass(id) {
+    if (userRole === 'viewer') { alert('Viewers cannot edit gate passes.'); return; }
+    const gp = allGatePasses.find(g => g.id === id);
+    if (!gp) return;
 
-        editingGpId = id;
-        showPage('createGatePass');
+    document.getElementById('editGpId').value = id;
+    document.getElementById('editGpModalTitle').textContent = 'Edit Gate Pass — ' + (gp.gatePassNumber || '');
 
-        document.getElementById('gatePassType').value      = gp.type             || 'INWARD';
-        document.getElementById('gatePassNumber').value    = gp.gatePassNumber   || '';
-        document.getElementById('gatePassDate').value      = gp.date             || '';
-        document.getElementById('customerName').value      = gp.customerName     || '';
-        document.getElementById('customerPhone').value     = gp.customerPhone    || '';
-        document.getElementById('customerAddress').value   = gp.customerAddress  || '';
-        document.getElementById('vehicleNumber').value     = gp.vehicleNumber    || '';
-        document.getElementById('weighbridgeNumber').value = gp.weighbridgeNo    || '';
-        document.getElementById('customerWeight').value    = gp.customerWeight   || '';
-        document.getElementById('ourWeight').value         = gp.ourWeight        || '';
-        document.getElementById('weightDifference').value  = gp.weightDiff       || '';
-        document.getElementById('remarks').value           = gp.remarks          || '';
+    document.getElementById('editGpType').value              = gp.type             || 'INWARD';
+    document.getElementById('editGpNumber').value            = gp.gatePassNumber   || '';
+    document.getElementById('editGpDate').value              = gp.date             || '';
+    document.getElementById('editGpCustomerName').value      = gp.customerName     || '';
+    document.getElementById('editGpCustomerPhone').value     = gp.customerPhone    || '';
+    document.getElementById('editGpCustomerAddress').value   = gp.customerAddress  || '';
+    document.getElementById('editGpVehicleNumber').value     = gp.vehicleNumber    || '';
+    document.getElementById('editGpWeighbridgeNumber').value = gp.weighbridgeNo    || '';
+    document.getElementById('editGpCustomerWeight').value    = gp.customerWeight   || '';
+    document.getElementById('editGpOurWeight').value         = gp.ourWeight        || '';
+    document.getElementById('editGpWeightDifference').value  = gp.weightDiff       || '';
+    document.getElementById('editGpRemarks').value           = gp.remarks          || '';
 
-        // Populate items table — handles both old single-product and new items[] format
-        const tbody = document.getElementById('itemsTableBody');
-        tbody.innerHTML = '';
-        const items = getItemsArray(gp);
-        if (items.length > 0) {
-            items.forEach(item => addItemRow(item.productName, item.productUnit, item.qtyWeight, item.amount || ''));
-        } else {
-            addItemRow(); // at least one blank row
-        }
+    const custSel = document.getElementById('editGpCustomerSelect');
+    custSel.innerHTML = '<option value="">-- Select Customer --</option>';
+    allCustomers.forEach(c => {
+        custSel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
 
-        document.getElementById('saveGatePassBtn').textContent           = '✅ Update Gate Pass';
-        document.getElementById('saveGatePassBtn').style.backgroundColor = 'var(--warning-orange)';
-
-        showGpAlert(`Editing Gate Pass: ${gp.gatePassNumber} — Make changes and click Update.`, 'info');
+    const tbody = document.getElementById('editItemsTableBody');
+    tbody.innerHTML = '';
+    const items = getItemsArray(gp);
+    if (items.length > 0) {
+        items.forEach(item => addEditItemRow(item.productName, item.productUnit, item.qtyWeight, item.amount || ''));
+    } else {
+        addEditItemRow();
     }
+
+    document.getElementById('editGpAlert').innerHTML = '';
+    document.getElementById('editGpModal').style.display = 'block';
+}
+
+function closeEditGpModal() {
+    document.getElementById('editGpModal').style.display = 'none';
+    document.getElementById('editGpAlert').innerHTML = '';
+}
+
+function showEditGpAlert(msg, type) {
+    document.getElementById('editGpAlert').innerHTML =
+        `<div class="alert alert-${type}">${msg}</div>`;
+    if (type === 'success') {
+        setTimeout(() => { document.getElementById('editGpAlert').innerHTML = ''; }, 4000);
+    }
+}
+
+function fillEditCustomerDetails() {
+    const id = document.getElementById('editGpCustomerSelect').value;
+    if (!id) return;
+    const c = allCustomers.find(c => c.id === id);
+    if (c) {
+        document.getElementById('editGpCustomerName').value    = c.name    || '';
+        document.getElementById('editGpCustomerPhone').value   = c.phone   || '';
+        document.getElementById('editGpCustomerAddress').value = c.address || '';
+    }
+}
+
+function calcEditWeightDiff() {
+    const cw   = parseFloat(document.getElementById('editGpCustomerWeight').value) || 0;
+    const ow   = parseFloat(document.getElementById('editGpOurWeight').value) || 0;
+    const diff = ow - cw;
+    const el   = document.getElementById('editGpWeightDifference');
+    if (cw || ow) {
+        el.value = diff.toFixed(3);
+        el.style.color = diff < 0 ? 'var(--primary-red)' : 'var(--success-green)';
+    } else {
+        el.value = '';
+        el.style.color = '';
+    }
+}
+
+function addEditItemRow(productName = '', productUnit = '', qtyWeight = '', amount = '') {
+    const tbody  = document.getElementById('editItemsTableBody');
+    const rowNum = tbody.rows.length + 1;
+    const row    = document.createElement('tr');
+    row.innerHTML = `
+        <td style="text-align:center;color:#888;font-weight:600;font-size:13px;width:34px;">${rowNum}</td>
+        <td>
+            <select class="edit-item-product-select" onchange="onEditItemProductSelect(this)">
+                <option value="">-- Select --</option>
+                ${allProducts.map(p =>
+                    `<option value="${p.id}" data-unit="${p.unit || 'kg'}">${p.name} (${p.unit || 'kg'})</option>`
+                ).join('')}
+            </select>
+        </td>
+        <td><input type="text"   class="edit-item-name"   placeholder="Product / Item Name" value="${productName.replace(/"/g,'&quot;')}" required></td>
+        <td><input type="text"   class="edit-item-unit"   value="${productUnit}" readonly style="background:#f5f5f5;color:#666;text-align:center;"></td>
+        <td><input type="number" class="edit-item-qty"    step="0.001" min="0" placeholder="0.000" value="${qtyWeight}"></td>
+        <td><input type="number" class="edit-item-amount" step="0.01"  min="0" placeholder="Optional" value="${amount}" style="text-align:right;"></td>
+        <td style="text-align:center;">
+            <button type="button" class="item-remove-btn" onclick="removeEditItemRow(this)" title="Remove item">×</button>
+        </td>
+    `;
+    tbody.appendChild(row);
+    renumberEditRows();
+}
+
+function removeEditItemRow(btn) {
+    const tbody = document.getElementById('editItemsTableBody');
+    if (tbody.rows.length <= 1) { alert('At least one product / item is required.'); return; }
+    btn.closest('tr').remove();
+    renumberEditRows();
+}
+
+function renumberEditRows() {
+    document.querySelectorAll('#editItemsTableBody tr').forEach((row, i) => {
+        row.cells[0].textContent = i + 1;
+    });
+}
+
+function onEditItemProductSelect(select) {
+    const pid = select.value;
+    if (!pid) return;
+    const p = allProducts.find(p => p.id === pid);
+    if (!p) return;
+    const row = select.closest('tr');
+    row.querySelector('.edit-item-name').value = p.name || '';
+    row.querySelector('.edit-item-unit').value = p.unit || 'kg';
+}
+
+async function saveEditGatePass(e) {
+    e.preventDefault();
+    if (userRole === 'viewer') { alert('Viewers cannot edit gate passes.'); return; }
+
+    const id = document.getElementById('editGpId').value;
+    if (!id) { showEditGpAlert('Error: Gate Pass ID missing.', 'error'); return; }
+
+    const rows  = document.querySelectorAll('#editItemsTableBody tr');
+    const items = [];
+    let itemError = false;
+    rows.forEach((row, idx) => {
+        const name   = row.querySelector('.edit-item-name').value.trim();
+        const unit   = row.querySelector('.edit-item-unit').value.trim() || 'kg';
+        const qty    = parseFloat(row.querySelector('.edit-item-qty').value) || 0;
+        const amount = row.querySelector('.edit-item-amount').value.trim();
+        if (!name) {
+            showEditGpAlert(`Item row ${idx + 1}: Product name is required.`, 'error');
+            itemError = true;
+            return;
+        }
+        items.push({ productName: name, productUnit: unit, qtyWeight: qty, amount: amount ? parseFloat(amount) : '' });
+    });
+    if (itemError) return;
+    if (items.length === 0) { showEditGpAlert('Please add at least one product / item.', 'error'); return; }
+
+    const gpNumber = document.getElementById('editGpNumber').value.trim();
+    const duplicate = allGatePasses.find(gp => gp.gatePassNumber === gpNumber && gp.id !== id);
+    if (duplicate) {
+        showEditGpAlert(`❌ Gate Pass number "${gpNumber}" already exists.`, 'error');
+        return;
+    }
+
+    showEditGpAlert('Saving...', 'info');
+
+    const data = {
+        gatePassNumber:  gpNumber,
+        type:            document.getElementById('editGpType').value,
+        date:            document.getElementById('editGpDate').value,
+        customerName:    document.getElementById('editGpCustomerName').value.trim(),
+        customerPhone:   document.getElementById('editGpCustomerPhone').value.trim(),
+        customerAddress: document.getElementById('editGpCustomerAddress').value.trim(),
+        items:           items,
+        vehicleNumber:   document.getElementById('editGpVehicleNumber').value.trim(),
+        weighbridgeNo:   document.getElementById('editGpWeighbridgeNumber').value.trim(),
+        customerWeight:  parseFloat(document.getElementById('editGpCustomerWeight').value) || 0,
+        ourWeight:       parseFloat(document.getElementById('editGpOurWeight').value) || 0,
+        weightDiff:      parseFloat(document.getElementById('editGpWeightDifference').value) || 0,
+        remarks:         document.getElementById('editGpRemarks').value.trim(),
+        updatedBy:       currentUser.email,
+        updatedAt:       new Date().toISOString()
+    };
+
+    if (!data.customerName) { showEditGpAlert('Customer name is required.', 'error'); return; }
+    if (!data.date)         { showEditGpAlert('Date is required.',           'error'); return; }
+
+    try {
+        await database.ref(`gatePasses/${id}`).update(data);
+        showEditGpAlert('Gate Pass updated: ' + data.gatePassNumber, 'success');
+        await loadAllGatePasses();
+        updateDashboard();
+        setTimeout(() => closeEditGpModal(), 1200);
+    } catch (err) {
+        showEditGpAlert('Error: ' + err.message, 'error');
+    }
+}
 
     // ============================================================
     // GATE PASS — Delete
@@ -2412,12 +2675,12 @@ function displayGatePasses(passes) {
     // CLOSE MODALS ON OUTSIDE CLICK (same as invoice app)
     // ============================================================
     window.onclick = function (event) {
-        if (event.target.classList.contains('modal')) {
-            event.target.style.display = 'none';
-            // If gate pass view modal closed, reset edit state too
-            if (event.target.id === 'viewGpModal') closeViewGpModal();
-        }
-    };
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+        if (event.target.id === 'viewGpModal') closeViewGpModal();
+        if (event.target.id === 'editGpModal')  closeEditGpModal();
+    }
+};
 
     </script>
 </body>
