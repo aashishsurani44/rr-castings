@@ -699,6 +699,25 @@
                                     <input type="text" id="customerAddress" placeholder="Enter Address">
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Bill No.</label>
+                                    <input type="text" id="billNo" placeholder="Enter Bill Number">
+                                </div>
+                                <div class="form-group">
+                                    <label>Bill Amount (₹)</label>
+                                    <input type="number" id="billAmount" step="0.01" min="0" placeholder="Enter Bill Amount">
+                                </div>
+                                <div class="form-group">
+                                    <label>Paid By</label>
+                                    <select id="paidBy">
+                                        <option value="">-- Select --</option>
+                                        <option value="Siddhu">Siddhu</option>
+                                        <option value="Ravi Shankar">Ravi Shankar</option>
+                                        <option value="Dinesh">Dinesh</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Product / Item Details — supports multiple items -->
@@ -721,12 +740,6 @@
                                 </table>
                             </div>
                             <button type="button" class="btn btn-secondary add-item-btn" onclick="addItemRow()">+ Add Item</button>
-                            <select name="Paid By" id="paidBy">
-                                <option value="--Select--"></option>
-                                <option value="Siddhu">Siddhu</option>
-                                <option value="Ravi Shankar">Ravi Shankar</option>
-                                <option value="Dinesh">Dinesh</option>
-                            </select>
                         </div>
 
                         <!-- Vehicle & Weighbridge -->
@@ -1177,6 +1190,25 @@
                             <input type="text" id="editGpCustomerAddress" placeholder="Enter Address">
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bill No.</label>
+                            <input type="text" id="editGpBillNo" placeholder="Enter Bill Number">
+                        </div>
+                        <div class="form-group">
+                            <label>Bill Amount (₹)</label>
+                            <input type="number" id="editGpBillAmount" step="0.01" min="0" placeholder="Enter Bill Amount">
+                        </div>
+                        <div class="form-group">
+                            <label>Paid By</label>
+                            <select id="editGpPaidBy">
+                                <option value="">-- Select --</option>
+                                <option value="Siddhu">Siddhu</option>
+                                <option value="Ravi Shankar">Ravi Shankar</option>
+                                <option value="Dinesh">Dinesh</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-section">
@@ -1198,12 +1230,6 @@
                         </table>
                     </div>
                     <button type="button" class="btn btn-secondary add-item-btn" onclick="addEditItemRow()">+ Add Item</button>
-                    <select name="Paid By" id="paidBy">
-                                <option value="--Select--"></option>
-                                <option value="Siddhu">Siddhu</option>
-                                <option value="Ravi Shankar">Ravi Shankar</option>
-                                <option value="Dinesh">Dinesh</option>
-                    </select>
                 </div>
 
                 <div class="form-section">
@@ -1930,6 +1956,9 @@ async function saveGatePass(e) {
         customerName:    document.getElementById('customerName').value.trim(),
         customerPhone:   document.getElementById('customerPhone').value.trim(),
         customerAddress: document.getElementById('customerAddress').value.trim(),
+        billNo:          document.getElementById('billNo').value.trim(),
+        billAmount:      parseFloat(document.getElementById('billAmount').value) || 0,
+        paidBy:          document.getElementById('paidBy').value,
         items:           items,
         vehicleNumber:   document.getElementById('vehicleNumber').value.trim(),
         weighbridgeNo:   document.getElementById('weighbridgeNumber').value.trim(),
@@ -1937,7 +1966,6 @@ async function saveGatePass(e) {
         ourWeight:       parseFloat(document.getElementById('ourWeight').value) || 0,
         weightDiff:      parseFloat(document.getElementById('weightDifference').value) || 0,
         remarks:         document.getElementById('remarks').value.trim(),
-        paidBy:          document.getElementById('paidBy').value,
         createdBy:       currentUser.email,
         createdAt:       new Date().toISOString(),
         updatedAt:       new Date().toISOString()
@@ -2124,13 +2152,24 @@ function displayGatePasses(passes) {
                             <div class="gp-field-label">Address</div>
                             <div class="gp-field-value">${gp.customerAddress || '-'}</div>
                         </div>
+                        <div>
+                            <div class="gp-field-label">Bill No.</div>
+                            <div class="gp-field-value">${gp.billNo || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Bill Amount</div>
+                            <div class="gp-field-value">${gp.billAmount ? '₹' + Number(gp.billAmount).toFixed(2) : '-'}</div>
+                        </div>
+                        <div>
+                            <div class="gp-field-label">Paid By</div>
+                            <div class="gp-field-value">${gp.paidBy || '-'}</div>
+                        </div>
                     </div>
 
                     <hr style="border-color:var(--border-gray); margin:15px 0;">
 
                     <!-- Products / Items table -->
                     <h3 style="color:var(--primary-red); margin-bottom:12px;">Product / Item Details</h3>
-                    <h3 style="color:var(--primary-gray): margin-bottom:12px;" "text-align: left;">Paid By - $ {paidBy || '-'}</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:14px;border:1px solid var(--border-gray);border-radius:6px;overflow:hidden;">
                         <thead>
                             <tr style="background:var(--primary-purple);color:white;">
@@ -2232,6 +2271,9 @@ function editGatePass(id) {
     document.getElementById('editGpCustomerName').value      = gp.customerName     || '';
     document.getElementById('editGpCustomerPhone').value     = gp.customerPhone    || '';
     document.getElementById('editGpCustomerAddress').value   = gp.customerAddress  || '';
+    document.getElementById('editGpBillNo').value            = gp.billNo           || '';
+    document.getElementById('editGpBillAmount').value        = gp.billAmount       || '';
+    document.getElementById('editGpPaidBy').value            = gp.paidBy           || '';
     document.getElementById('editGpVehicleNumber').value     = gp.vehicleNumber    || '';
     document.getElementById('editGpWeighbridgeNumber').value = gp.weighbridgeNo    || '';
     document.getElementById('editGpCustomerWeight').value    = gp.customerWeight   || '';
@@ -2386,6 +2428,9 @@ async function saveEditGatePass(e) {
         customerName:    document.getElementById('editGpCustomerName').value.trim(),
         customerPhone:   document.getElementById('editGpCustomerPhone').value.trim(),
         customerAddress: document.getElementById('editGpCustomerAddress').value.trim(),
+        billNo:          document.getElementById('editGpBillNo').value.trim(),
+        billAmount:      parseFloat(document.getElementById('editGpBillAmount').value) || 0,
+        paidBy:          document.getElementById('editGpPaidBy').value,
         items:           items,
         vehicleNumber:   document.getElementById('editGpVehicleNumber').value.trim(),
         weighbridgeNo:   document.getElementById('editGpWeighbridgeNumber').value.trim(),
@@ -2638,7 +2683,7 @@ async function saveEditGatePass(e) {
             if (Array.isArray(gp.items)) {
                 return gp.items.filter(Boolean);
             }
-            // Firebase object format: {0:{...}, 1:{...}}
+            // Firebase object format: {0:{.p..}, 1:{...}}
             if (typeof gp.items === 'object') {
                 return Object.keys(gp.items)
                     .sort((a, b) => Number(a) - Number(b))
