@@ -701,21 +701,12 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Bill No.</label>
+                                    <label>Bill No. (Customer's Bill No.)</label>
                                     <input type="text" id="billNo" placeholder="Enter Bill Number">
                                 </div>
                                 <div class="form-group">
-                                    <label>Bill Amount (₹)</label>
+                                    <label>Customer's Bill Amount (₹)</label>
                                     <input type="number" id="billAmount" step="0.01" min="0" placeholder="Enter Bill Amount">
-                                </div>
-                                <div class="form-group">
-                                    <label>Paid By</label>
-                                    <select id="paidBy">
-                                        <option value="">-- Select --</option>
-                                        <option value="Siddhu">Siddhu</option>
-                                        <option value="Ravi Shankar">Ravi Shankar</option>
-                                        <option value="Dinesh">Dinesh</option>
-                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -739,7 +730,18 @@
                                     <tbody id="itemsTableBody"></tbody>
                                 </table>
                             </div>
-                            <button type="button" class="btn btn-secondary add-item-btn" onclick="addItemRow()">+ Add Item</button>
+                            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                                <button type="button" class="btn btn-secondary add-item-btn" onclick="addItemRow()">+ Add Item</button>
+                                <div class="form-group" style="margin:0; min-width:180px;">
+                                    <label style="margin-bottom:4px;">Paid By</label>
+                                    <select id="paidBy">
+                                        <option value="">-- Select --</option>
+                                        <option value="Siddhu">Siddhu</option>
+                                        <option value="Ravi Shankar">Ravi Shankar</option>
+                                        <option value="Dinesh">Dinesh</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Vehicle & Weighbridge -->
@@ -1199,15 +1201,6 @@
                             <label>Bill Amount (₹)</label>
                             <input type="number" id="editGpBillAmount" step="0.01" min="0" placeholder="Enter Bill Amount">
                         </div>
-                        <div class="form-group">
-                            <label>Paid By</label>
-                            <select id="editGpPaidBy">
-                                <option value="">-- Select --</option>
-                                <option value="Siddhu">Siddhu</option>
-                                <option value="Ravi Shankar">Ravi Shankar</option>
-                                <option value="Dinesh">Dinesh</option>
-                            </select>
-                        </div>
                     </div>
                 </div>
 
@@ -1229,7 +1222,18 @@
                             <tbody id="editItemsTableBody"></tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-secondary add-item-btn" onclick="addEditItemRow()">+ Add Item</button>
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                                <button type="button" class="btn btn-secondary add-item-btn" onclick="addItemRow()">+ Add Item</button>
+                                <div class="form-group" style="margin:0; min-width:180px;">
+                                    <label style="margin-bottom:4px;">Paid By</label>
+                                    <select id="paidBy">
+                                        <option value="">-- Select --</option>
+                                        <option value="Siddhu">Siddhu</option>
+                                        <option value="Ravi Shankar">Ravi Shankar</option>
+                                        <option value="Dinesh">Dinesh</option>
+                                    </select>
+                                </div>
+                    </div>
                 </div>
 
                 <div class="form-section">
