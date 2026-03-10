@@ -2176,10 +2176,13 @@ function displayGatePasses(passes) {
                                 <th style="padding:8px 12px;text-align:left;font-weight:600;">S.No.</th>
                                 <th style="padding:8px 12px;text-align:left;font-weight:600;">Product / Item</th>
                                 <th style="padding:8px 12px;text-align:left;font-weight:600;">Unit</th>
-                                <th style="padding:8px 12px;text-align:right;font-weight:600;">Weight / Qty</th>
+                                <th style="padding:8px 12px;text-align:right;font-weight:600;">Weight / Qty</th><br>
                                 <th style="padding:8px 12px;text-align:right;font-weight:600;">Amount (₹)</th>
                             </tr>
                         </thead>
+                        <div>
+                            <div class="gp-field-value">Paid By- ${gp.paidBy || '-'}</div>
+                        </div>
                         <tbody>
                             ${(() => {
                                 const gpItems = getItemsArray(gp);
