@@ -721,6 +721,12 @@
                                 </table>
                             </div>
                             <button type="button" class="btn btn-secondary add-item-btn" onclick="addItemRow()">+ Add Item</button>
+                            <select name="Paid By" id="paidBy">
+                                <option value="--Select--"></option>
+                                <option value="Siddhu">Siddhu</option>
+                                <option value="Ravi Shankar">Ravi Shankar</option>
+                                <option value="Dinesh">Dinesh</option>
+                            </select>
                         </div>
 
                         <!-- Vehicle & Weighbridge -->
@@ -1179,7 +1185,7 @@
                         <table class="items-table">
                             <thead>
                                 <tr>
-                                    <th style="width:34px;">#</th>
+                                    <th style="width:34px;">S.No.</th>
                                     <th style="min-width:160px;">Select Product</th>
                                     <th style="min-width:160px;">Product / Item Name *</th>
                                     <th style="width:80px;">Unit</th>
@@ -1192,6 +1198,12 @@
                         </table>
                     </div>
                     <button type="button" class="btn btn-secondary add-item-btn" onclick="addEditItemRow()">+ Add Item</button>
+                    <select name="Paid By" id="paidBy">
+                                <option value="--Select--"></option>
+                                <option value="Siddhu">Siddhu</option>
+                                <option value="Ravi Shankar">Ravi Shankar</option>
+                                <option value="Dinesh">Dinesh</option>
+                    </select>
                 </div>
 
                 <div class="form-section">
@@ -1925,6 +1937,7 @@ async function saveGatePass(e) {
         ourWeight:       parseFloat(document.getElementById('ourWeight').value) || 0,
         weightDiff:      parseFloat(document.getElementById('weightDifference').value) || 0,
         remarks:         document.getElementById('remarks').value.trim(),
+        paidBy:          document.getElementById('paidBy').value,
         createdBy:       currentUser.email,
         createdAt:       new Date().toISOString(),
         updatedAt:       new Date().toISOString()
@@ -2117,6 +2130,7 @@ function displayGatePasses(passes) {
 
                     <!-- Products / Items table -->
                     <h3 style="color:var(--primary-red); margin-bottom:12px;">Product / Item Details</h3>
+                    <h3 style="color:var(--primary-gray): margin-bottom:12px;">Paid By - $ {paidBy || '-'}</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:14px;border:1px solid var(--border-gray);border-radius:6px;overflow:hidden;">
                         <thead>
                             <tr style="background:var(--primary-purple);color:white;">
