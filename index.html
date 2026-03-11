@@ -1292,6 +1292,7 @@
     <!-- ============================================================
          FIREBASE SDK — Same version as Invoice App
     ============================================================ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -2607,23 +2608,93 @@ async function saveEditGatePass(e) {
             }
         });
 
-        const csv = [
+        // Build XLSX with alternating colors per gate pass using SheetJS
+        const XLSX = window.XLSX;
+        if (!XLSX) {
+            // Fallback to CSV if SheetJS not available
+            const csv = [
+                [`${settings.companyName || 'RR Castings'} - Gate Pass Report`],
+                [`Downloaded on: ${new Date().toLocaleString()}`],
+                [`Filter — Type: ${tLabel}  Month: ${mLabel}  Year: ${yLabel}`],
+                [`Total Gate Passes: ${passes.length}`],
+                [],
+                headers.map(esc),
+                ...rows.map(r => r.map(esc))
+            ].map(row => row.join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url; a.download = filename.replace('.csv','.csv');
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            return;
+        }
+
+        // Alternate fill colors per gate pass group
+        const colors = ['FFE8F0FA', 'FFFFF9E6', 'FFE8F5E9', 'FFFCE4EC', 'FFEDE7F6', 'FFE0F7FA'];
+        const headerColor = 'FF6B4C9A';
+
+        // Build worksheet data array (title rows + header + data)
+        const wsData = [
             [`${settings.companyName || 'RR Castings'} - Gate Pass Report`],
             [`Downloaded on: ${new Date().toLocaleString()}`],
             [`Filter — Type: ${tLabel}  Month: ${mLabel}  Year: ${yLabel}`],
             [`Total Gate Passes: ${passes.length}`],
             [],
-            headers.map(esc),
-            ...rows.map(r => r.map(esc))
-        ].map(row => row.join(',')).join('\n');
+            headers,
+            ...rows
+        ];
 
-        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(url);
-    }
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Track which color index each gate pass gets (by gate pass number)
+        const gpColorMap = {};
+        let colorIdx = 0;
+        rows.forEach(row => {
+            const gpNum = row[0];
+            if (gpNum && gpColorMap[gpNum] === undefined) {
+                gpColorMap[gpNum] = colorIdx % colors.length;
+                colorIdx++;
+            }
+        });
+
+        // Style header row (row index 5 = 6th row, 0-based)
+        const headerRowIdx = 5;
+        const colCount = headers.length;
+        for (let c = 0; c < colCount; c++) {
+            const cellRef = XLSX.utils.encode_cell({ r: headerRowIdx, c });
+            if (!ws[cellRef]) continue;
+            ws[cellRef].s = {
+                fill: { patternType: 'solid', fgColor: { rgb: headerColor } },
+                font: { bold: true, color: { rgb: 'FFFFFFFF' } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+
+        // Style data rows
+        rows.forEach((row, i) => {
+            const gpNum = row[0];
+            const color = colors[gpColorMap[gpNum] ?? (i % colors.length)];
+            const rowIdx = headerRowIdx + 1 + i;
+            for (let c = 0; c < colCount; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c });
+                if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+                ws[cellRef].s = {
+                    fill: { patternType: 'solid', fgColor: { rgb: color } },
+                    alignment: { horizontal: 'left' }
+                };
+            }
+        });
+
+        // Auto column widths
+        ws['!cols'] = headers.map((h, i) => {
+            const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] ?? '').length));
+            return { wch: Math.min(maxLen + 2, 40) };
+        });
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Gate Passes');
+        XLSX.writeFile(wb, filename.replace('.csv', '.xlsx'));
 
     // ============================================================
     // DASHBOARD — Update Stats & Recent Table
