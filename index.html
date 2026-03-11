@@ -2156,14 +2156,14 @@ function displayGatePasses(passes) {
                             <div class="gp-field-label">Address</div>
                             <div class="gp-field-value">${gp.customerAddress || '-'}</div>
                         </div>
-                        <div>
+                        ${gp.billNo ? `<div>
                             <div class="gp-field-label">Bill No.</div>
-                            <div class="gp-field-value">${gp.billNo || '-'}</div>
-                        </div>
-                        <div>
+                            <div class="gp-field-value">${gp.billNo}</div>
+                        </div>` : ''}
+                        ${gp.billAmount ? `<div>
                             <div class="gp-field-label">Bill Amount</div>
-                            <div class="gp-field-value">${gp.billAmount ? '₹' + Number(gp.billAmount).toFixed(2) : '-'}</div>
-                        </div>
+                            <div class="gp-field-value">₹${Number(gp.billAmount).toFixed(2)}</div>
+                        </div>` : ''}
                     </div>
 
                     <hr style="border-color:var(--border-gray); margin:15px 0;">
@@ -2557,6 +2557,7 @@ async function saveEditGatePass(e) {
         const headers = [
             'Gate Pass No.', 'Type', 'Date',
             'Customer Name', 'Customer Phone', 'Customer Address',
+            'Bill No.', 'Bill Amount (₹)', 'Paid By',
             'Item #', 'Product Name', 'Unit', 'Weight / Qty', 'Amount (₹)',
             'Vehicle Number', 'Weighbridge No.',
             "Customer's Weight (kg)", 'Our Weight (kg)', 'Weight Difference (kg)',
@@ -2575,7 +2576,8 @@ async function saveEditGatePass(e) {
             const items = getItemsArray(gp);
             const gpCommon = [
                 gp.gatePassNumber || '', gp.type || '', gp.date || '',
-                gp.customerName || '', gp.customerPhone || '', gp.customerAddress || ''
+                gp.customerName || '', gp.customerPhone || '', gp.customerAddress || '',
+                gp.billNo || '', gp.billAmount || '', gp.paidBy || ''
             ];
             const gpTrail = idx => idx === 0 ? [
                 gp.vehicleNumber || '', gp.weighbridgeNo || '',
