@@ -2574,10 +2574,14 @@ async function saveEditGatePass(e) {
         const rows = [];
         passes.forEach(gp => {
             const items = getItemsArray(gp);
-            const gpCommon = [
+            const gpCommon = idx => idx === 0 ? [
                 gp.gatePassNumber || '', gp.type || '', gp.date || '',
                 gp.customerName || '', gp.customerPhone || '', gp.customerAddress || '',
                 gp.billNo || '', gp.billAmount || '', gp.paidBy || ''
+            ] : [
+                gp.gatePassNumber || '', '', '',
+                '', '', '',
+                '', '', ''
             ];
             const gpTrail = idx => idx === 0 ? [
                 gp.vehicleNumber || '', gp.weighbridgeNo || '',
@@ -2587,11 +2591,11 @@ async function saveEditGatePass(e) {
             ] : ['','','','','','','',''];
 
             if (items.length === 0) {
-                rows.push([...gpCommon, '', '', '', '', '', ...gpTrail(0)]);
+                rows.push([...gpCommon(0), '', '', '', '', '', ...gpTrail(0)]);
             } else {
                 items.forEach((item, idx) => {
                     rows.push([
-                        ...gpCommon,
+                        ...gpCommon(idx),
                         idx + 1,
                         item.productName || '',
                         item.productUnit || '',
