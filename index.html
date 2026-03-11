@@ -1292,7 +1292,6 @@
     <!-- ============================================================
          FIREBASE SDK — Same version as Invoice App
     ============================================================ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -2527,7 +2526,7 @@ async function saveEditGatePass(e) {
     // EXCEL / CSV DOWNLOAD
     // Each gate pass with N items produces N rows in the CSV.
     // ============================================================
-    function downloadExcel() {
+function downloadExcel() {
         const gpNo     = document.getElementById('filterGpNo').value.toLowerCase();
         const customer = document.getElementById('filterCustomer').value.toLowerCase();
         const type     = document.getElementById('filterType').value;
@@ -2550,28 +2549,22 @@ async function saveEditGatePass(e) {
         if (passes.length === 0) { alert('No gate passes to download.'); return; }
 
         const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const mLabel   = month ? monthNames[parseInt(month)] : 'All';
-        const yLabel   = year  || new Date().getFullYear();
-        const tLabel   = type  || 'All';
-        const filename = `GatePasses_${tLabel}_${mLabel}_${yLabel}.csv`;
+        const mLabel = month ? monthNames[parseInt(month)] : 'All';
+        const yLabel = year  || new Date().getFullYear();
+        const tLabel = type  || 'All';
+        const filename = `GatePasses_${tLabel}_${mLabel}_${yLabel}.xlsx`;
 
         const headers = [
             'Gate Pass No.', 'Type', 'Date',
             'Customer Name', 'Customer Phone', 'Customer Address',
-            'Bill No.', 'Bill Amount (₹)', 'Paid By',
-            'Item #', 'Product Name', 'Unit', 'Weight / Qty', 'Amount (₹)',
+            'Bill No.', 'Bill Amount (Rs)', 'Paid By',
+            'Item #', 'Product Name', 'Unit', 'Weight / Qty', 'Amount (Rs)',
             'Vehicle Number', 'Weighbridge No.',
             "Customer's Weight (kg)", 'Our Weight (kg)', 'Weight Difference (kg)',
             'Remarks', 'Created By', 'Created At'
         ];
 
-        const esc = val => {
-            const s = String(val == null ? '' : val);
-            return (s.includes(',') || s.includes('"') || s.includes('\n'))
-                ? `"${s.replace(/"/g, '""')}"` : s;
-        };
-
-        // Expand each gate pass into one row per item
+        // Build rows
         const rows = [];
         passes.forEach(gp => {
             const items = getItemsArray(gp);
@@ -2579,11 +2572,7 @@ async function saveEditGatePass(e) {
                 gp.gatePassNumber || '', gp.type || '', gp.date || '',
                 gp.customerName || '', gp.customerPhone || '', gp.customerAddress || '',
                 gp.billNo || '', gp.billAmount || '', gp.paidBy || ''
-            ] : [
-                gp.gatePassNumber || '', '', '',
-                '', '', '',
-                '', '', ''
-            ];
+            ] : [gp.gatePassNumber || '', '', '', '', '', '', '', '', ''];
             const gpTrail = idx => idx === 0 ? [
                 gp.vehicleNumber || '', gp.weighbridgeNo || '',
                 gp.customerWeight || 0, gp.ourWeight || 0, gp.weightDiff || 0,
@@ -2592,109 +2581,214 @@ async function saveEditGatePass(e) {
             ] : ['','','','','','','',''];
 
             if (items.length === 0) {
-                rows.push([...gpCommon(0), '', '', '', '', '', ...gpTrail(0)]);
+                rows.push({ data: [...gpCommon(0), '', '', '', '', '', ...gpTrail(0)], gpNum: gp.gatePassNumber || '' });
             } else {
                 items.forEach((item, idx) => {
-                    rows.push([
-                        ...gpCommon(idx),
-                        idx + 1,
-                        item.productName || '',
-                        item.productUnit || '',
-                        item.qtyWeight   || 0,
-                        (item.amount !== '' && item.amount !== undefined && item.amount !== null) ? item.amount : '',
-                        ...gpTrail(idx)
-                    ]);
+                    rows.push({
+                        data: [
+                            ...gpCommon(idx), idx + 1,
+                            item.productName || '', item.productUnit || '', item.qtyWeight || 0,
+                            (item.amount !== '' && item.amount !== undefined && item.amount !== null) ? item.amount : '',
+                            ...gpTrail(idx)
+                        ],
+                        gpNum: gp.gatePassNumber || ''
+                    });
                 });
             }
         });
 
-        // Build XLSX with alternating colors per gate pass using SheetJS
-        const XLSX = window.XLSX;
-        if (!XLSX) {
-            // Fallback to CSV if SheetJS not available
-            const csv = [
-                [`${settings.companyName || 'RR Castings'} - Gate Pass Report`],
-                [`Downloaded on: ${new Date().toLocaleString()}`],
-                [`Filter — Type: ${tLabel}  Month: ${mLabel}  Year: ${yLabel}`],
-                [`Total Gate Passes: ${passes.length}`],
-                [],
-                headers.map(esc),
-                ...rows.map(r => r.map(esc))
-            ].map(row => row.join(',')).join('\n');
-            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href = url; a.download = filename.replace('.csv','.csv');
-            document.body.appendChild(a); a.click();
-            document.body.removeChild(a); URL.revokeObjectURL(url);
-            return;
-        }
-
-        // Alternate fill colors per gate pass group
-        const colors = ['FFE8F0FA', 'FFFFF9E6', 'FFE8F5E9', 'FFFCE4EC', 'FFEDE7F6', 'FFE0F7FA'];
-        const headerColor = 'FF6B4C9A';
-
-        // Build worksheet data array (title rows + header + data)
-        const wsData = [
-            [`${settings.companyName || 'RR Castings'} - Gate Pass Report`],
-            [`Downloaded on: ${new Date().toLocaleString()}`],
-            [`Filter — Type: ${tLabel}  Month: ${mLabel}  Year: ${yLabel}`],
-            [`Total Gate Passes: ${passes.length}`],
-            [],
-            headers,
-            ...rows
-        ];
-
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-        // Track which color index each gate pass gets (by gate pass number)
+        // Assign a color index per gate pass
+        const palette = ['E8F0FA','FFF9E6','E8F5E9','FCE4EC','EDE7F6','E0F7FA','FFF3E0','F3E5F5'];
         const gpColorMap = {};
-        let colorIdx = 0;
-        rows.forEach(row => {
-            const gpNum = row[0];
-            if (gpNum && gpColorMap[gpNum] === undefined) {
-                gpColorMap[gpNum] = colorIdx % colors.length;
-                colorIdx++;
-            }
+        let ci = 0;
+        rows.forEach(r => {
+            if (r.gpNum && gpColorMap[r.gpNum] === undefined) gpColorMap[r.gpNum] = ci++ % palette.length;
         });
 
-        // Style header row (row index 5 = 6th row, 0-based)
-        const headerRowIdx = 5;
-        const colCount = headers.length;
-        for (let c = 0; c < colCount; c++) {
-            const cellRef = XLSX.utils.encode_cell({ r: headerRowIdx, c });
-            if (!ws[cellRef]) continue;
-            ws[cellRef].s = {
-                fill: { patternType: 'solid', fgColor: { rgb: headerColor } },
-                font: { bold: true, color: { rgb: 'FFFFFFFF' } },
-                alignment: { horizontal: 'center' }
+        // XML escape
+        const xe = v => String(v == null ? '' : v)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+
+        // Build styles XML
+        const fills = [
+            '<fill><patternFill patternType="none"/></fill>',
+            '<fill><patternFill patternType="gray125"/></fill>',
+            '<fill><patternFill patternType="solid"><fgColor rgb="FF6B4C9A"/></patternFill></fill>', // idx 2: header purple
+            ...palette.map(c => `<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/></patternFill></fill>`) // idx 3+
+        ];
+        const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts>
+    <font><sz val="11"/><name val="Calibri"/></font>
+    <font><sz val="11"/><b/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+    <font><sz val="11"/><b/><name val="Calibri"/></font>
+  </fonts>
+  <fills>${fills.join('')}</fills>
+  <borders><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+    <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+    ${palette.map((_,i) => `<xf numFmtId="0" fontId="0" fillId="${i+3}" borderId="0" xfId="0" applyFill="1"/>`).join('')}
+  </cellXfs>
+</styleSheet>`;
+
+        // styleIdx: 1=header, 2=bold title, 3+= data colors (offset by 3 in cellXfs)
+        const getDataStyle = gpNum => 3 + (gpColorMap[gpNum] ?? 0);
+
+        // Build sheet XML
+        const colWidths = headers.map((h, i) => {
+            const maxLen = Math.max(h.length, ...rows.map(r => String(r.data[i] ?? '').length));
+            return Math.min(maxLen + 2, 40);
+        });
+
+        const colsXml = colWidths.map((w, i) =>
+            `<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
+
+        const cellXml = (val, sIdx, cIdx) => {
+            const ref = String.fromCharCode(65 + cIdx);
+            const v = xe(val);
+            const isNum = val !== '' && val !== null && val !== undefined && !isNaN(Number(val)) && typeof val !== 'boolean';
+            if (isNum && val !== '') {
+                return `<c r="${ref}" s="${sIdx}" t="n"><v>${v}</v></c>`;
+            }
+            return `<c r="${ref}" s="${sIdx}" t="inlineStr"><is><t>${v}</t></is></c>`;
+        };
+
+        // Helper to convert col index to letters (supports AA, AB, etc.)
+        const colLetter = i => {
+            let s = '';
+            let n = i;
+            do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
+            return s;
+        };
+
+        const makeCellXml = (val, sIdx, cIdx, rowNum) => {
+            const ref = colLetter(cIdx) + rowNum;
+            const v = xe(val);
+            const isNum = val !== '' && val !== null && val !== undefined && !isNaN(Number(val)) && String(val).trim() !== '';
+            if (isNum) return `<c r="${ref}" s="${sIdx}" t="n"><v>${Number(val)}</v></c>`;
+            return `<c r="${ref}" s="${sIdx}" t="inlineStr"><is><t>${v}</t></is></c>`;
+        };
+
+        let sheetRows = '';
+        // Row 1: title
+        sheetRows += `<row r="1"><c r="A1" s="2" t="inlineStr"><is><t>${xe(settings.companyName || 'RR Castings')} - Gate Pass Report</t></is></c></row>`;
+        sheetRows += `<row r="2"><c r="A2" s="0" t="inlineStr"><is><t>Downloaded on: ${xe(new Date().toLocaleString())}</t></is></c></row>`;
+        sheetRows += `<row r="3"><c r="A3" s="0" t="inlineStr"><is><t>Filter - Type: ${xe(tLabel)}  Month: ${xe(mLabel)}  Year: ${xe(yLabel)}</t></is></c></row>`;
+        sheetRows += `<row r="4"><c r="A4" s="0" t="inlineStr"><is><t>Total Gate Passes: ${passes.length}</t></is></c></row>`;
+        // Row 5: empty
+        sheetRows += `<row r="5"></row>`;
+        // Row 6: header
+        sheetRows += `<row r="6">${headers.map((h, c) => makeCellXml(h, 1, c, 6)).join('')}</row>`;
+        // Data rows starting at row 7
+        rows.forEach((r, i) => {
+            const rowNum = 7 + i;
+            const sIdx = getDataStyle(r.gpNum);
+            sheetRows += `<row r="${rowNum}">${r.data.map((v, c) => makeCellXml(v, sIdx, c, rowNum)).join('')}</row>`;
+        });
+
+        const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <cols>${colsXml}</cols>
+  <sheetData>${sheetRows}</sheetData>
+</worksheet>`;
+
+        // Build XLSX (zip) manually using a simple zip builder
+        const toUint8 = str => new TextEncoder().encode(str);
+
+        function buildZip(files) {
+            const localHeaders = [];
+            const centralDir   = [];
+            let offset = 0;
+
+            const crc32 = data => {
+                let crc = 0xFFFFFFFF;
+                const table = new Uint32Array(256);
+                for (let i = 0; i < 256; i++) {
+                    let c = i;
+                    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                    table[i] = c;
+                }
+                for (let i = 0; i < data.length; i++) crc = table[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+                return (crc ^ 0xFFFFFFFF) >>> 0;
             };
+
+            const le2 = n => [n & 0xFF, (n >> 8) & 0xFF];
+            const le4 = n => [n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF, (n >> 24) & 0xFF];
+
+            files.forEach(({ name, data }) => {
+                const nameBytes = toUint8(name);
+                const crc = crc32(data);
+                const local = new Uint8Array([
+                    0x50,0x4B,0x03,0x04, // sig
+                    20,0,                 // version
+                    0,0,                  // flags
+                    0,0,                  // compression (stored)
+                    0,0,0,0,              // mod time/date
+                    ...le4(crc),
+                    ...le4(data.length),
+                    ...le4(data.length),
+                    ...le2(nameBytes.length),
+                    0,0,                  // extra len
+                    ...nameBytes,
+                    ...data
+                ]);
+                const central = new Uint8Array([
+                    0x50,0x4B,0x01,0x02,
+                    20,0, 20,0,
+                    0,0, 0,0, 0,0,0,0,
+                    ...le4(crc),
+                    ...le4(data.length),
+                    ...le4(data.length),
+                    ...le2(nameBytes.length),
+                    0,0, 0,0, 0,0,
+                    0,0,0,0, 0,0,0,0,
+                    ...le4(offset),
+                    ...nameBytes
+                ]);
+                localHeaders.push(local);
+                centralDir.push(central);
+                offset += local.length;
+            });
+
+            const cdSize   = centralDir.reduce((s, b) => s + b.length, 0);
+            const eocd     = new Uint8Array([
+                0x50,0x4B,0x05,0x06,
+                0,0, 0,0,
+                ...le2(files.length),
+                ...le2(files.length),
+                ...le4(cdSize),
+                ...le4(offset),
+                0,0
+            ]);
+
+            const total = localHeaders.reduce((s,b)=>s+b.length,0) + cdSize + eocd.length;
+            const out   = new Uint8Array(total);
+            let pos = 0;
+            localHeaders.forEach(b => { out.set(b, pos); pos += b.length; });
+            centralDir.forEach(b  => { out.set(b, pos); pos += b.length; });
+            out.set(eocd, pos);
+            return out;
         }
 
-        // Style data rows
-        rows.forEach((row, i) => {
-            const gpNum = row[0];
-            const color = colors[gpColorMap[gpNum] ?? (i % colors.length)];
-            const rowIdx = headerRowIdx + 1 + i;
-            for (let c = 0; c < colCount; c++) {
-                const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c });
-                if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
-                ws[cellRef].s = {
-                    fill: { patternType: 'solid', fgColor: { rgb: color } },
-                    alignment: { horizontal: 'left' }
-                };
-            }
-        });
+        const zip = buildZip([
+            { name: '[Content_Types].xml',  data: toUint8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>') },
+            { name: '_rels/.rels',           data: toUint8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>') },
+            { name: 'xl/workbook.xml',       data: toUint8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Gate Passes" sheetId="1" r:id="rId1"/></sheets></workbook>') },
+            { name: 'xl/_rels/workbook.xml.rels', data: toUint8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>') },
+            { name: 'xl/styles.xml',         data: toUint8(stylesXml) },
+            { name: 'xl/worksheets/sheet1.xml', data: toUint8(sheetXml) },
+        ]);
 
-        // Auto column widths
-        ws['!cols'] = headers.map((h, i) => {
-            const maxLen = Math.max(h.length, ...rows.map(r => String(r[i] ?? '').length));
-            return { wch: Math.min(maxLen + 2, 40) };
-        });
-
-        XLSX.utils.book_append_sheet(wb, ws, 'Gate Passes');
-        XLSX.writeFile(wb, filename.replace('.csv', '.xlsx'));
+        const blob = new Blob([zip], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(url);
     }
 
     // ============================================================
