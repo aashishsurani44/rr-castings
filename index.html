@@ -2695,6 +2695,7 @@ async function saveEditGatePass(e) {
 
         XLSX.utils.book_append_sheet(wb, ws, 'Gate Passes');
         XLSX.writeFile(wb, filename.replace('.csv', '.xlsx'));
+    }
 
     // ============================================================
     // DASHBOARD — Update Stats & Recent Table
