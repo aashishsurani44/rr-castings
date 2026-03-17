@@ -2007,11 +2007,11 @@ async function saveGatePass(e) {
         console.warn('Could not update GP counter:', err.message);
     }
 
-    showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
-    resetGatePassForm();
     await loadAllGatePasses();
     updateDashboard();
-    setTimeout(() => showPage('viewGatePasses'), 1500);
+    const goToView = confirm(`✅ Gate Pass ${data.gatePassNumber} saved successfully!\n\nClick OK to go to View Gate Passes, or Cancel to create another.`);
+    resetGatePassForm();
+    if (goToView) showPage('viewGatePasses');
 }
 
 // Reset Gate Pass Form //
