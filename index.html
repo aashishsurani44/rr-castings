@@ -1151,7 +1151,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Gate Pass Type *</label>
-                            <select id="editGpType" required>
+                            <select id="editGpType" required onchange="onEditTypeChange()">
                                 <option value="INWARD">INWARD (Material Coming In)</option>
                                 <option value="OUTWARD">OUTWARD (Material Going Out)</option>
                             </select>
@@ -1673,6 +1673,14 @@ const firebaseConfig = {
         generateGpNumber(document.getElementById('gatePassType').value);
     }
 
+    function onEditTypeChange() {
+        const type = document.getElementById('editGpType').value;
+        const isOut = type === 'OUTWARD';
+        const prefix = isOut ? (settings.outwardPrefix || 'RRC-OUT-') : (settings.inwardPrefix || 'RRC-IN-');
+        const num    = isOut ? (settings.nextOutwardNo  || 1)         : (settings.nextInwardNo  || 1);
+        document.getElementById('editGpNumber').value = prefix + String(num).padStart(4, '0');
+    }
+
     // ============================================================
     // WEIGHT DIFFERENCE AUTO-CALCULATION
     // Difference = Our Weight − Customer's Weight
@@ -1981,7 +1989,13 @@ async function saveGatePass(e) {
 
     try {
         await database.ref('gatePasses').push(data);
+    } catch (err) {
+        showGpAlert('Error saving gate pass: ' + err.message, 'error');
+        return;
+    }
 
+    // Update counter separately — failure here is non-critical
+    try {
         if (type === 'OUTWARD') {
             settings.nextOutwardNo = (settings.nextOutwardNo || 1) + 1;
             await database.ref('gatePassSettings/nextOutwardNo').set(settings.nextOutwardNo);
@@ -1989,18 +2003,15 @@ async function saveGatePass(e) {
             settings.nextInwardNo = (settings.nextInwardNo || 1) + 1;
             await database.ref('gatePassSettings/nextInwardNo').set(settings.nextInwardNo);
         }
-
-        alert('Gate Pass saved! Number: ' + data.gatePassNumber);
-        showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
-        resetGatePassForm();
-        showPage('viewGatePasses');
-        await loadAllGatePasses();
-        updateDashboard();
-
     } catch (err) {
-        alert('Error saving gate pass: ' + err.message);
-        showGpAlert('Error: ' + err.message, 'error');
+        console.warn('Could not update GP counter:', err.message);
     }
+
+    showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
+    resetGatePassForm();
+    showPage('viewGatePasses');
+    await loadAllGatePasses();
+    updateDashboard();
 }
 
 // Reset Gate Pass Form //
