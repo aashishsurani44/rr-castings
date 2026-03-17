@@ -2009,9 +2009,9 @@ async function saveGatePass(e) {
 
     showGpAlert('Gate Pass saved: ' + data.gatePassNumber, 'success');
     resetGatePassForm();
-    showPage('viewGatePasses');
     await loadAllGatePasses();
     updateDashboard();
+    setTimeout(() => showPage('viewGatePasses'), 1500);
 }
 
 // Reset Gate Pass Form //
