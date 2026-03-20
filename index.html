@@ -1586,14 +1586,17 @@ const firebaseConfig = {
     // ============================================================
     // SETTINGS — Firebase /gpSettings
     // ============================================================
-    async function loadSettings() {
-        try {
-            const snap = await database.ref('gatePassSettings').once('value');
-            settings   = snap.val() || getDefaultSettings();
-        } catch {
-            settings = getDefaultSettings();
-        }
-        generateGpNumber(document.getElementById('gatePassType').value);
+    function loadSettings() {
+        return new Promise(resolve => {
+            database.ref('gatePassSettings').on('value', snap => {
+                settings = snap.val() || getDefaultSettings();
+                generateGpNumber(document.getElementById('gatePassType').value);
+                resolve();
+            }, () => {
+                settings = getDefaultSettings();
+                resolve();
+            });
+        });
     }
 
     function getDefaultSettings() {
@@ -1704,44 +1707,47 @@ const firebaseConfig = {
     // ============================================================
     // CUSTOMERS — Load, Populate Select, Render Table
     // ============================================================
-    async function loadCustomers() {
-        try {
-            const snap = await database.ref('customers').once('value');
-            const data = snap.val();
-            allCustomers = data
-                ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
-                : [];
+function loadCustomers() {
+        return new Promise(resolve => {
+            database.ref('customers').on('value', snap => {
+                const data = snap.val();
+                allCustomers = data
+                    ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
+                    : [];
 
-            // Populate gate pass form dropdown
-            const sel = document.getElementById('customerSelect');
-            sel.innerHTML = '<option value="">-- Select Customer --</option>';
-            allCustomers.forEach(c => {
-                sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                // Populate gate pass form dropdown
+                const sel = document.getElementById('customerSelect');
+                sel.innerHTML = '<option value="">-- Select Customer --</option>';
+                allCustomers.forEach(c => {
+                    sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                });
+
+                // Render customers table
+                const tbody = document.getElementById('customersTable');
+                if (allCustomers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
+                } else {
+                    tbody.innerHTML = allCustomers.map(c => `
+                        <tr>
+                            <td>${c.name || ''}</td>
+                            <td>${c.gstin || '-'}</td>
+                            <td>${c.phone || '-'}</td>
+                            <td>${c.state || '-'}</td>
+                            <td class="action-buttons">
+                                <button class="btn btn-sm btn-secondary" onclick="editCustomer('${c.id}')">Edit</button>
+                                ${userRole === 'admin'
+                                    ? `<button class="btn btn-sm" style="background-color:var(--primary-red);color:white;" onclick="deleteCustomer('${c.id}')">Delete</button>`
+                                    : ''}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                resolve();
+            }, err => {
+                console.error('Error loading customers:', err);
+                resolve();
             });
-
-            // Render customers table
-            const tbody = document.getElementById('customersTable');
-            if (allCustomers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No customers found</td></tr>';
-            } else {
-                tbody.innerHTML = allCustomers.map(c => `
-                    <tr>
-                        <td>${c.name || ''}</td>
-                        <td>${c.gstin || '-'}</td>
-                        <td>${c.phone || '-'}</td>
-                        <td>${c.state || '-'}</td>
-                        <td class="action-buttons">
-                            <button class="btn btn-sm btn-secondary" onclick="editCustomer('${c.id}')">Edit</button>
-                            ${userRole === 'admin'
-                                ? `<button class="btn btn-sm" style="background-color:var(--primary-red);color:white;" onclick="deleteCustomer('${c.id}')">Delete</button>`
-                                : ''}
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        } catch (err) {
-            console.error('Error loading customers:', err);
-        }
+        });
     }
 
     function fillCustomerDetails() {
@@ -1824,9 +1830,9 @@ const firebaseConfig = {
     // PRODUCTS — Load, Render Table
     // (No single productSelect to populate — items table uses per-row dropdowns)
     // ============================================================
-    async function loadProducts() {
-        try {
-            const snap = await database.ref('products').once('value');
+function loadProducts() {
+        return new Promise(resolve => {
+            database.ref('products').on('value', snap => {
             const data = snap.val();
             allProducts = data
                 ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
@@ -1852,9 +1858,12 @@ const firebaseConfig = {
                     </tr>
                 `).join('');
             }
-        } catch (err) {
-            console.error('Error loading products:', err);
-        }
+                resolve();
+            }, err => {
+                console.error('Error loading products:', err);
+                resolve();
+            });
+        });
     }
 
     // Build the options HTML for per-row product dropdowns
@@ -2039,23 +2048,25 @@ function resetGatePassForm() {
     // ============================================================
     // GATE PASS — Load All from Firebase
     // ============================================================
-    async function loadAllGatePasses() {
-        try {
-            const snap = await database.ref('gatePasses').once('value');
-            const data = snap.val();
-            allGatePasses = data
-                ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
-                : [];
+function loadAllGatePasses() {
+        return new Promise(resolve => {
+            database.ref('gatePasses').on('value', snap => {
+                const data = snap.val();
+                allGatePasses = data
+                    ? Object.keys(data).map(k => ({ id: k, ...data[k] }))
+                    : [];
 
-            // Sort descending by date
-            allGatePasses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                allGatePasses.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-            populateYearFilter();
-            displayGatePasses(allGatePasses);
-            updateDashboard();
-        } catch (err) {
-            console.error('Error loading gate passes:', err);
-        }
+                populateYearFilter();
+                displayGatePasses(allGatePasses);
+                updateDashboard();
+                resolve();
+            }, err => {
+                console.error('Error loading gate passes:', err);
+                resolve();
+            });
+        });
     }
 
     // ============================================================
