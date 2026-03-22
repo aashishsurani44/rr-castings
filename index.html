@@ -880,6 +880,7 @@
                                     <th>Weight \ Quantity</th>
                                     <th>Vehicle No.</th>
                                     <th>Actions</th>
+                                    <style>#allGatePassesTable tr { cursor: pointer; } #allGatePassesTable tr:hover { background: #f0eaf8 !important; }</style>
                                 </tr>
                             </thead>
                             <tbody id="allGatePassesTable">
@@ -1562,8 +1563,7 @@ const firebaseConfig = {
         if (pageEl) pageEl.classList.add('active');
 
         // Page-specific refresh
-        if      (pageName === 'viewGatePasses') loadAllGatePasses();
-        else if (pageName === 'customers')      loadCustomers();
+        if      (pageName === 'customers')      loadCustomers();
         else if (pageName === 'products')       loadProducts();
         else if (pageName === 'createGatePass') {
             resetGatePassForm();
@@ -2092,7 +2092,7 @@ function displayGatePasses(passes) {
                     : val;
             }
             return `
-            <tr>
+            <tr onclick="viewGatePass('${gp.id}')">
                 <td><strong>${gp.gatePassNumber || '-'}</strong></td>
                 <td>${formatDate(gp.date)}</td>
                 <td><span class="${gp.type === 'INWARD' ? 'badge-inward' : 'badge-outward'}">${gp.type || '-'}</span></td>
@@ -2100,8 +2100,7 @@ function displayGatePasses(passes) {
                 <td>${itemSummary}</td>
                 <td>${weightDisplay}</td>
                 <td>${gp.vehicleNumber || '-'}</td>
-                <td class="action-buttons">
-                    <button class="btn btn-sm btn-secondary" onclick="viewGatePass('${gp.id}')">View</button>
+                <td class="action-buttons" onclick="event.stopPropagation()">
                     ${userRole !== 'viewer'
                         ? `<button class="btn btn-sm btn-warning" onclick="editGatePass('${gp.id}')">Edit</button>`
                         : ''}
@@ -2771,7 +2770,7 @@ async function saveEditGatePass(e) {
         } else {
             try {
                 tbody.innerHTML = recent.map(gp => `
-                    <tr>
+                    <tr onclick="viewGatePass('${gp.id}')" style="cursor:pointer;" onmouseover="this.style.background='#f0eaf8'" onmouseout="this.style.background=''">
                         <td><strong>${gp.gatePassNumber || '-'}</strong></td>
                         <td>${formatDate(gp.date)}</td>
                         <td><span class="${gp.type === 'INWARD' ? 'badge-inward' : 'badge-outward'}">${gp.type || '-'}</span></td>
