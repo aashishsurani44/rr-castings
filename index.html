@@ -1667,9 +1667,19 @@ const firebaseConfig = {
     // ============================================================
     function generateGpNumber(type) {
         const isOut  = (type === 'OUTWARD');
-        const prefix = isOut ? (settings.outwardPrefix || 'RRC-OUT-') : (settings.inwardPrefix  || 'RRC-IN-');
-        const num    = isOut ? (settings.nextOutwardNo  || 1)         : (settings.nextInwardNo   || 1);
-        document.getElementById('gatePassNumber').value = prefix + String(num).padStart(4, '0');
+        const prefix = isOut ? (settings.outwardPrefix || 'RRC-OUT-') : (settings.inwardPrefix || 'RRC-IN-');
+
+        // Find the highest existing number for this prefix from saved gate passes
+        let maxNum = isOut ? ((settings.nextOutwardNo || 1) - 1) : ((settings.nextInwardNo || 1) - 1);
+        allGatePasses.forEach(gp => {
+            const gpNum = gp.gatePassNumber || '';
+            if (gpNum.startsWith(prefix)) {
+                const n = parseInt(gpNum.replace(prefix, ''), 10);
+                if (!isNaN(n) && n > maxNum) maxNum = n;
+            }
+        });
+
+        document.getElementById('gatePassNumber').value = prefix + String(maxNum + 1).padStart(4, '0');
     }
 
     function onTypeChange() {
