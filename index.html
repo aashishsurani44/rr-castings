@@ -596,6 +596,15 @@
                      PAGE: DASHBOARD
                 ================================================ -->
                 <div id="dashboard" class="page active">
+                    <button onclick="showPage('createGatePass')"
+                        style="position:fixed; bottom:30px; right:30px; z-index:999;
+                               width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
+                               background:linear-gradient(135deg, var(--primary-red), var(--primary-purple));
+                               color:white; font-size:26px; display:flex; align-items:center; justify-content:center;
+                               box-shadow:0 4px 16px rgba(0,0,0,0.25); transition:transform 0.2s, box-shadow 0.2s;"
+                        onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.35)'"
+                        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.25)'"
+                        title="Create Gate Pass">＋ Create New</button>
                     <h1 style="margin-bottom: 20px; color: var(--primary-red);">Dashboard</h1>
                     <div class="dashboard-grid">
                         <div class="dashboard-card">
@@ -1569,9 +1578,8 @@ const firebaseConfig = {
             resetGatePassForm();
         }
         else if (pageName === 'settings')       loadSettingsForm();
-        else if (pageName === 'dashboard')      { updateDashboard(); showFab(true); }
+        else if (pageName === 'dashboard')      updateDashboard();
         
-        if (pageName !== 'dashboard') showFab(false);
     }
 
     // ============================================================
@@ -1583,7 +1591,6 @@ const firebaseConfig = {
         await loadProducts();
         await loadAllGatePasses();
         loadSettingsForm();
-        showFab(true);
     }
 
     // ============================================================
@@ -2802,10 +2809,6 @@ async function saveEditGatePass(e) {
     // ============================================================
     // UTILITY — Format date YYYY-MM-DD → DD-MM-YYYY for display
     // ============================================================
-    function showFab(visible) {
-        document.getElementById('fabCreateGp').style.display = visible ? 'flex' : 'none';
-    }
-
     function formatDate(d) {
         if (!d) return '-';
         const p = d.split('-');
@@ -2916,15 +2919,5 @@ async function saveEditGatePass(e) {
 };
 
 </script>
-<!-- Floating Action Button — Create Gate Pass (Dashboard only) -->
-    <button id="fabCreateGp" onclick="showPage('createGatePass')"
-        style="display:none; position:fixed; bottom:30px; right:30px; z-index:999;
-               width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
-               background:linear-gradient(135deg, var(--primary-red), var(--primary-purple));
-               color:white; font-size:26px; align-items:center; justify-content:center;
-               box-shadow:0 4px 16px rgba(0,0,0,0.25); transition:transform 0.2s, box-shadow 0.2s;"
-        onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.35)'"
-        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.25)'"
-        title="Create Gate Pass">＋</button>
 </body>
 </html>
