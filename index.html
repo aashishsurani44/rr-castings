@@ -595,12 +595,12 @@
                 <!-- ================================================
                      PAGE: DASHBOARD
                 ================================================ -->
-                <div id="dashboard" class="page active">
-                    <button onclick="showPage('createGatePass')"
+                <div id="dashboard" class="page">
+                    <button id="fabCreateGp" onclick="showPage('createGatePass')"
                         style="position:fixed; bottom:30px; right:30px; z-index:999;
                                width:56px; height:56px; border-radius:50%; border:none; cursor:pointer;
                                background:linear-gradient(135deg, var(--primary-red), var(--primary-purple));
-                               color:white; font-size:26px; display:flex; align-items:center; justify-content:center;
+                               color:white; font-size:26px; display:none; align-items:center; justify-content:center;
                                box-shadow:0 4px 16px rgba(0,0,0,0.25); transition:transform 0.2s, box-shadow 0.2s;"
                         onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 20px rgba(0,0,0,0.35)'"
                         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.25)'"
@@ -1527,11 +1527,18 @@ const firebaseConfig = {
             document.querySelectorAll('[data-page="customers"]').forEach(el => el.style.display    = 'none');
             document.querySelectorAll('[data-page="products"]').forEach(el => el.style.display     = 'none');
             document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display     = 'none');
+            const fab = document.getElementById('fabCreateGp');
+            if (fab) fab.style.display = 'none';
         } else if (userRole === 'user') {
             // Hide: Settings only
             document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display = 'none');
+            const fab = document.getElementById('fabCreateGp');
+            if (fab) fab.style.display = 'flex';
+        } else {
+            // admin sees everything
+            const fab = document.getElementById('fabCreateGp');
+            if (fab) fab.style.display = 'flex';
         }
-        // admin sees everything
     }
 
     // ============================================================
