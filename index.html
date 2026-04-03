@@ -1476,9 +1476,11 @@ const firebaseConfig = {
         loadLoginEmailDropdown();
     }
 
-    function showMainApp() {
+ function showMainApp() {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainApp').style.display     = 'block';
+        // Always land on dashboard and reset any previously open page
+        showPage('dashboard');
         loadAllData().then(() => resetGatePassForm());
     }
 
