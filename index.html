@@ -387,15 +387,54 @@
         }
 
         /* ---- FILTERS ---- */
-        .filters {
-            background-color: var(--white);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        /* Filter drawer */
+        .filter-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; }
+        .filter-overlay.open { display:block; }
+        .filter-drawer {
+            position:fixed; top:0; right:-360px; width:340px; height:100%; background:var(--white);
+            z-index:1001; box-shadow:-4px 0 20px rgba(0,0,0,0.15); transition:right 0.3s ease;
+            display:flex; flex-direction:column; overflow:hidden;
         }
-
-        .filters .form-row { margin-bottom: 0; }
+        .filter-drawer.open { right:0; }
+        .filter-drawer-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:18px 20px; border-bottom:1px solid var(--border-gray);
+            background:linear-gradient(135deg,var(--primary-red),var(--primary-purple)); color:white;
+        }
+        .filter-drawer-header h3 { margin:0; font-size:17px; }
+        .filter-close-btn {
+            background:rgba(255,255,255,0.2); border:none; color:white; font-size:20px;
+            width:32px; height:32px; border-radius:50%; cursor:pointer; line-height:1;
+        }
+        .filter-body { flex:1; overflow-y:auto; padding:20px; }
+        .filter-section { margin-bottom:22px; }
+        .filter-section-title {
+            font-size:12px; font-weight:700; text-transform:uppercase; color:#888;
+            letter-spacing:0.5px; margin-bottom:10px;
+        }
+        .filter-chip-group { display:flex; flex-wrap:wrap; gap:8px; }
+        .filter-chip {
+            padding:6px 14px; border-radius:20px; border:1.5px solid var(--border-gray);
+            background:white; font-size:13px; cursor:pointer; transition:all 0.15s; font-family:inherit;
+        }
+        .filter-chip.active {
+            background:var(--primary-purple); border-color:var(--primary-purple); color:white; font-weight:600;
+        }
+        .filter-drawer-footer {
+            padding:16px 20px; border-top:1px solid var(--border-gray);
+            display:flex; gap:10px;
+        }
+        .filter-active-bar {
+            display:none; align-items:center; gap:10px; flex-wrap:wrap;
+            background:#f0eaf8; border-radius:8px; padding:10px 14px; margin-bottom:14px;
+            font-size:13px; color:var(--primary-purple);
+        }
+        .filter-active-bar.visible { display:flex; }
+        .filter-tag {
+            background:var(--primary-purple); color:white; border-radius:12px;
+            padding:3px 10px; font-size:12px; font-weight:600;
+        }
+        @media(max-width:480px){ .filter-drawer { width:100%; right:-100%; } }
 
         /* ---- ALERTS ---- */
         .alert { padding: 15px 20px; border-radius: 5px; margin-bottom: 20px; font-weight: 500; }
@@ -520,7 +559,10 @@
                 </div>
                 <div class="form-group" style="margin-top: 15px;">
                     <label>Password</label>
-                    <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="new-password">
+                    <div style="position:relative;">
+                        <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="new-password" style="padding-right:42px;width:100%;">
+                        <button type="button" id="togglePwdBtn" onclick="const i=document.getElementById('loginPassword');if(i.type==='password'){i.type='text';this.textContent='🙈';}else{i.type='password';this.textContent='👁';}" style="position:absolute;right:0;top:0;height:100%;width:40px;border:none;background:transparent;cursor:pointer;font-size:16px;color:#888;">👁</button>
+                    </div>
                 </div>
                 <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; margin-top: 20px;">Login</button>
             </form>
@@ -813,66 +855,105 @@
                 <div id="viewGatePasses" class="page">
                     <h1 style="margin-bottom: 20px; color: var(--primary-red);">View Gate Passes</h1>
 
-                    <!-- Filters - same style as invoice app -->
-                    <div class="filters">
-                        <h3 style="margin-bottom: 15px;">Filters</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Search Gate Pass No.</label>
-                                <input type="text" id="filterGpNo" placeholder="Search...">
-                            </div>
-                            <div class="form-group">
-                                <label>Customer Name</label>
-                                <input type="text" id="filterCustomer" placeholder="Search...">
-                            </div>
-                            <div class="form-group">
-                                <label>Gate Pass Type</label>
-                                <select id="filterType">
-                                    <option value="">All Types</option>
-                                    <option value="INWARD">INWARD</option>
-                                    <option value="OUTWARD">OUTWARD</option>
-                                </select>
-                            </div>
+                    <!-- Top bar: Filter button + Download -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <button class="btn btn-primary" onclick="openFilterDrawer()" style="display:flex;align-items:center;gap:6px;">
+                                <span>⚙</span> Filters
+                                <span id="filterCountBadge" style="display:none;background:white;color:var(--primary-purple);border-radius:10px;padding:1px 7px;font-size:12px;font-weight:700;margin-left:2px;"></span>
+                            </button>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Month</label>
-                                <select id="filterMonth">
-                                    <option value="">All Months</option>
-                                    <option value="01">January</option>
-                                    <option value="02">February</option>
-                                    <option value="03">March</option>
-                                    <option value="04">April</option>
-                                    <option value="05">May</option>
-                                    <option value="06">June</option>
-                                    <option value="07">July</option>
-                                    <option value="08">August</option>
-                                    <option value="09">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
+                        <button class="btn btn-success" onclick="downloadExcel()">📥 Download Excel</button>
+                    </div>
+
+                    <!-- Active filter tags bar -->
+                    <div id="filterActiveBar" class="filter-active-bar">
+                        <span style="font-weight:600;">Filters:</span>
+                        <span id="filterTagsContainer" style="display:flex;flex-wrap:wrap;gap:6px;"></span>
+                        <button onclick="clearFilters()" style="margin-left:auto;background:none;border:none;color:var(--primary-red);cursor:pointer;font-size:13px;font-weight:600;">✖ Clear All</button>
+                    </div>
+
+                    <!-- Filter Overlay -->
+                    <div id="filterOverlay" class="filter-overlay" onclick="closeFilterDrawer()"></div>
+
+                    <!-- Filter Drawer -->
+                    <div id="filterDrawer" class="filter-drawer">
+                        <div class="filter-drawer-header">
+                            <h3>🔍 Filters</h3>
+                            <button class="filter-close-btn" onclick="closeFilterDrawer()">✕</button>
+                        </div>
+                        <div class="filter-body">
+
+                            <!-- Search -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">Gate Pass No.</div>
+                                <input type="text" id="filterGpNo" placeholder="Search gate pass number..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-gray);border-radius:8px;font-size:14px;font-family:inherit;">
                             </div>
-                            <div class="form-group">
-                                <label>Year</label>
-                                <select id="filterYear">
+
+                            <div class="filter-section">
+                                <div class="filter-section-title">Customer Name</div>
+                                <input type="text" id="filterCustomer" placeholder="Search customer..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-gray);border-radius:8px;font-size:14px;font-family:inherit;">
+                            </div>
+
+                            <!-- Type chips -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">Gate Pass Type</div>
+                                <div class="filter-chip-group">
+                                    <button class="filter-chip active" data-filter="type" data-value="" onclick="selectChip(this,'type')">All</button>
+                                    <button class="filter-chip" data-filter="type" data-value="INWARD" onclick="selectChip(this,'type')">INWARD</button>
+                                    <button class="filter-chip" data-filter="type" data-value="OUTWARD" onclick="selectChip(this,'type')">OUTWARD</button>
+                                </div>
+                                <input type="hidden" id="filterType" value="">
+                            </div>
+
+                            <!-- Month chips -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">Month</div>
+                                <div class="filter-chip-group">
+                                    <button class="filter-chip active" data-filter="month" data-value="" onclick="selectChip(this,'month')">All</button>
+                                    <button class="filter-chip" data-filter="month" data-value="01" onclick="selectChip(this,'month')">Jan</button>
+                                    <button class="filter-chip" data-filter="month" data-value="02" onclick="selectChip(this,'month')">Feb</button>
+                                    <button class="filter-chip" data-filter="month" data-value="03" onclick="selectChip(this,'month')">Mar</button>
+                                    <button class="filter-chip" data-filter="month" data-value="04" onclick="selectChip(this,'month')">Apr</button>
+                                    <button class="filter-chip" data-filter="month" data-value="05" onclick="selectChip(this,'month')">May</button>
+                                    <button class="filter-chip" data-filter="month" data-value="06" onclick="selectChip(this,'month')">Jun</button>
+                                    <button class="filter-chip" data-filter="month" data-value="07" onclick="selectChip(this,'month')">Jul</button>
+                                    <button class="filter-chip" data-filter="month" data-value="08" onclick="selectChip(this,'month')">Aug</button>
+                                    <button class="filter-chip" data-filter="month" data-value="09" onclick="selectChip(this,'month')">Sep</button>
+                                    <button class="filter-chip" data-filter="month" data-value="10" onclick="selectChip(this,'month')">Oct</button>
+                                    <button class="filter-chip" data-filter="month" data-value="11" onclick="selectChip(this,'month')">Nov</button>
+                                    <button class="filter-chip" data-filter="month" data-value="12" onclick="selectChip(this,'month')">Dec</button>
+                                </div>
+                                <input type="hidden" id="filterMonth" value="">
+                            </div>
+
+                            <!-- Year -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">Year</div>
+                                <select id="filterYear" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-gray);border-radius:8px;font-size:14px;font-family:inherit;">
                                     <option value="">All Years</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>From Date</label>
-                                <input type="date" id="filterFromDate">
+
+                            <!-- Date range -->
+                            <div class="filter-section">
+                                <div class="filter-section-title">Date Range</div>
+                                <div style="display:flex;gap:10px;align-items:center;">
+                                    <div style="flex:1;">
+                                        <div style="font-size:12px;color:#888;margin-bottom:4px;">From</div>
+                                        <input type="date" id="filterFromDate" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-gray);border-radius:8px;font-size:13px;font-family:inherit;">
+                                    </div>
+                                    <div style="flex:1;">
+                                        <div style="font-size:12px;color:#888;margin-bottom:4px;">To</div>
+                                        <input type="date" id="filterToDate" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-gray);border-radius:8px;font-size:13px;font-family:inherit;">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>To Date</label>
-                                <input type="date" id="filterToDate">
-                            </div>
-                        </div><br>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                            <button class="btn btn-primary" onclick="applyFilters()">🔍 Apply Filters</button>
-                            <button class="btn btn-secondary" onclick="clearFilters()">✖ Clear Filters</button>
-                            <!-- Download all filtered gate passes as Excel/CSV -->
-                            <button class="btn btn-success" onclick="downloadExcel()">📥 Download Excel</button>
+                        </div>
+
+                        <div class="filter-drawer-footer">
+                            <button class="btn btn-secondary" style="flex:1;" onclick="clearFilters()">✖ Clear All</button>
+                            <button class="btn btn-primary" style="flex:2;" onclick="applyFilters();closeFilterDrawer()">✔ Apply Filters</button>
                         </div>
                     </div>
 
@@ -1502,7 +1583,9 @@ const firebaseConfig = {
         const btn = document.getElementById('loginSubmitBtn');
         if (btn) { btn.textContent = 'Login'; btn.disabled = false; }
         const pwd = document.getElementById('loginPassword');
-        if (pwd) pwd.value = '';
+        if (pwd) { pwd.value = ''; pwd.type = 'password'; }
+        const toggleBtn = document.getElementById('togglePwdBtn');
+        if (toggleBtn) toggleBtn.textContent = '👁';
         const alert = document.getElementById('loginAlert');
         if (alert) alert.innerHTML = '';
 
@@ -2564,6 +2647,28 @@ async function saveEditGatePass(e) {
     // ============================================================
     // FILTERS — View Gate Passes page
     // ============================================================
+    // ============================================================
+    // FILTER DRAWER
+    // ============================================================
+    function openFilterDrawer() {
+        document.getElementById('filterDrawer').classList.add('open');
+        document.getElementById('filterOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeFilterDrawer() {
+        document.getElementById('filterDrawer').classList.remove('open');
+        document.getElementById('filterOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function selectChip(btn, group) {
+        document.querySelectorAll(`.filter-chip[data-filter="${group}"]`)
+            .forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(group === 'type' ? 'filterType' : 'filterMonth').value = btn.dataset.value;
+    }
+
     function populateYearFilter() {
         const years = [...new Set(
             allGatePasses.map(gp => (gp.date || '').split('-')[0]).filter(Boolean)
@@ -2575,6 +2680,40 @@ async function saveEditGatePass(e) {
         years.forEach(y => {
             sel.innerHTML += `<option value="${y}" ${cur === y ? 'selected' : ''}>${y}</option>`;
         });
+    }
+
+    function updateFilterUI() {
+        const gpNo     = document.getElementById('filterGpNo').value;
+        const customer = document.getElementById('filterCustomer').value;
+        const type     = document.getElementById('filterType').value;
+        const month    = document.getElementById('filterMonth').value;
+        const year     = document.getElementById('filterYear').value;
+        const from     = document.getElementById('filterFromDate').value;
+        const to       = document.getElementById('filterToDate').value;
+
+        const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const tags = [];
+        if (gpNo)     tags.push(gpNo);
+        if (customer) tags.push(customer);
+        if (type)     tags.push(type);
+        if (month)    tags.push(monthNames[parseInt(month)]);
+        if (year)     tags.push(year);
+        if (from)     tags.push('From: ' + from);
+        if (to)       tags.push('To: ' + to);
+
+        const bar  = document.getElementById('filterActiveBar');
+        const tagsC = document.getElementById('filterTagsContainer');
+        const badge = document.getElementById('filterCountBadge');
+
+        if (tags.length > 0) {
+            tagsC.innerHTML = tags.map(t => `<span class="filter-tag">${t}</span>`).join('');
+            bar.classList.add('visible');
+            badge.style.display = 'inline';
+            badge.textContent = tags.length;
+        } else {
+            bar.classList.remove('visible');
+            badge.style.display = 'none';
+        }
     }
 
     function applyFilters() {
@@ -2597,13 +2736,22 @@ async function saveEditGatePass(e) {
             return matchGp && matchCust && matchType && matchMon && matchYear && matchFrom && matchTo;
         });
 
+        updateFilterUI();
         displayGatePasses(filtered);
     }
 
     function clearFilters() {
-        ['filterGpNo','filterCustomer','filterType','filterMonth',
-         'filterYear','filterFromDate','filterToDate']
-            .forEach(id => { document.getElementById(id).value = ''; });
+        document.getElementById('filterGpNo').value    = '';
+        document.getElementById('filterCustomer').value = '';
+        document.getElementById('filterType').value    = '';
+        document.getElementById('filterMonth').value   = '';
+        document.getElementById('filterYear').value    = '';
+        document.getElementById('filterFromDate').value = '';
+        document.getElementById('filterToDate').value  = '';
+        // Reset chips to All
+        document.querySelectorAll('.filter-chip[data-value=""]').forEach(c => c.classList.add('active'));
+        document.querySelectorAll('.filter-chip:not([data-value=""])').forEach(c => c.classList.remove('active'));
+        updateFilterUI();
         displayGatePasses(allGatePasses);
     }
 
