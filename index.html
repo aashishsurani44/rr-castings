@@ -2759,7 +2759,7 @@ async function saveEditGatePass(e) {
     // EXCEL / CSV DOWNLOAD
     // Each gate pass with N items produces N rows in the CSV.
     // ============================================================
-    function downloadExcel() {
+   function downloadExcel() {
         const gpNo     = document.getElementById('filterGpNo').value.toLowerCase();
         const customer = document.getElementById('filterCustomer').value.toLowerCase();
         const type     = document.getElementById('filterType').value;
@@ -2767,7 +2767,7 @@ async function saveEditGatePass(e) {
         const year     = document.getElementById('filterYear').value;
         const from     = document.getElementById('filterFromDate').value;
         const to       = document.getElementById('filterToDate').value;
-
+ 
         const passes = allGatePasses.filter(gp => {
             const matchGp   = !gpNo     || (gp.gatePassNumber || '').toLowerCase().includes(gpNo);
             const matchCust = !customer || (gp.customerName   || '').toLowerCase().includes(customer);
@@ -2778,15 +2778,15 @@ async function saveEditGatePass(e) {
             const matchTo   = !to       || gp.date <= to;
             return matchGp && matchCust && matchType && matchMon && matchYear && matchFrom && matchTo;
         });
-
+ 
         if (passes.length === 0) { alert('No gate passes to download.'); return; }
-
+ 
         const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const mLabel = month ? monthNames[parseInt(month)] : 'All';
         const yLabel = year  || new Date().getFullYear();
         const tLabel = type  || 'All';
         const filename = `GatePasses_${tLabel}_${mLabel}_${yLabel}.xlsx`;
-
+ 
         const headers = [
             'Gate Pass No.', 'Type', 'Date',
             'Customer Name', 'Customer Phone', 'Customer Address',
@@ -2796,7 +2796,7 @@ async function saveEditGatePass(e) {
             "Customer's Weight (kg)", 'Our Weight (kg)', 'Weight Difference (kg)',
             'Remarks', 'Created By', 'Created At'
         ];
-
+ 
         // Build rows with gpNum tag for coloring
         const rows = [];
         passes.forEach(gp => {
@@ -2812,7 +2812,7 @@ async function saveEditGatePass(e) {
                 gp.remarks||'', gp.createdBy||'',
                 gp.createdAt ? new Date(gp.createdAt).toLocaleString() : ''
             ] : ['','','','','','','',''];
-
+ 
             if (items.length === 0) {
                 rows.push({ d: [...common(0),'','','','','', ...trail(0)], g: gp.gatePassNumber||'' });
             } else {
@@ -2826,25 +2826,25 @@ async function saveEditGatePass(e) {
                 });
             }
         });
-
+ 
         // Assign color per gate pass
         const palette = ['E8F0FA','FFF9E6','E8F5E9','FCE4EC','EDE7F6','E0F7FA','FFF3E0','F3E5F5'];
         const gpColor = {};
         let ci = 0;
         rows.forEach(r => { if (r.g && gpColor[r.g] === undefined) gpColor[r.g] = ci++ % palette.length; });
-
+ 
         // XML-safe escape
         const xe = v => String(v == null ? '' : v)
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
             .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-
+ 
         // Col letter helper (A..Z, AA, AB..)
         const colLetter = i => {
             let s = '', n = i;
             do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n/26) - 1; } while (n >= 0);
             return s;
         };
-
+ 
         // Build styles: fills index 0,1=reserved, 2=header purple, 3..=palette
         const fillsXml = [
             '<fill><patternFill patternType="none"/></fill>',
@@ -2852,11 +2852,29 @@ async function saveEditGatePass(e) {
             '<fill><patternFill patternType="solid"><fgColor rgb="FF6B4C9A"/></patternFill></fill>',
             ...palette.map(c=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/></patternFill></fill>`)
         ].join('');
-
-        // cellXfs: 0=normal, 1=header(purple+white bold), 2=title bold, 3..=data colors
-        const dataXfs = palette.map((_,i)=>`<xf numFmtId="0" fontId="0" fillId="${i+3}" borderId="0" xfId="0" applyFill="1"/>`).join('');
-        const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="${palette.length+3}">${fillsXml}</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>${dataXfs}</cellXfs></styleSheet>`;
-
+ 
+        // Borders:
+        // borderId 0 = no border (reserved)
+        // borderId 1 = thin left+right+top+bottom (column borders, inner rows)
+        // borderId 2 = thin left+right+top, MEDIUM bottom (last row of gate pass)
+        // borderId 3 = thin all sides for header
+        const bordersXml = [
+            '<border><left/><right/><top/><bottom/><diagonal/></border>',
+            '<border><left style="thin"><color rgb="FFBBBBBB"/></left><right style="thin"><color rgb="FFBBBBBB"/></right><top style="thin"><color rgb="FFBBBBBB"/></top><bottom style="thin"><color rgb="FFBBBBBB"/></bottom><diagonal/></border>',
+            '<border><left style="thin"><color rgb="FFBBBBBB"/></left><right style="thin"><color rgb="FFBBBBBB"/></right><top style="thin"><color rgb="FFBBBBBB"/></top><bottom style="medium"><color rgb="FF6B4C9A"/></bottom><diagonal/></border>',
+            '<border><left style="thin"><color rgb="FFFFFFFF"/></left><right style="thin"><color rgb="FFFFFFFF"/></right><top style="thin"><color rgb="FFFFFFFF"/></top><bottom style="thin"><color rgb="FFFFFFFF"/></bottom><diagonal/></border>'
+        ].join('');
+ 
+        // cellXfs:
+        // 0 = normal (no border)
+        // 1 = header (purple fill, white bold, white border)  borderId=3
+        // 2 = title bold
+        // 3..(3+palette.length-1)  = data inner row (fill + thin border)  borderId=1
+        // (3+palette.length)..(3+2*palette.length-1) = data last row of GP (fill + medium bottom) borderId=2
+        const dataXfsInner = palette.map((_,i)=>`<xf numFmtId="0" fontId="0" fillId="${i+3}" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>`).join('');
+        const dataXfsLast  = palette.map((_,i)=>`<xf numFmtId="0" fontId="0" fillId="${i+3}" borderId="2" xfId="0" applyFill="1" applyBorder="1"/>`).join('');
+        const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="12"/><name val="Calibri"/></font></fonts><fills count="${palette.length+3}">${fillsXml}</fills><borders count="4">${bordersXml}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="3" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>${dataXfsInner}${dataXfsLast}</cellXfs></styleSheet>`;
+ 
         // Build cell XML
         const makeCell = (val, sIdx, cIdx, rowNum) => {
             const ref = colLetter(cIdx) + rowNum;
@@ -2865,14 +2883,32 @@ async function saveEditGatePass(e) {
             if (isNum) return `<c r="${ref}" s="${sIdx}" t="n"><v>${Number(val)}</v></c>`;
             return `<c r="${ref}" s="${sIdx}" t="inlineStr"><is><t>${xe(val)}</t></is></c>`;
         };
-
+ 
         // Col widths
         const colWidths = headers.map((h,i) => {
             const max = Math.max(h.length, ...rows.map(r => String(r.d[i]??'').length));
             return Math.min(max + 2, 45);
         });
         const colsXml = colWidths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
-
+ 
+        // Mark last row of each gate pass group for thick bottom border
+        const lastRowOfGp = new Set();
+        for (let i = 0; i < rows.length; i++) {
+            if (i === rows.length - 1 || rows[i].g !== rows[i+1].g) {
+                lastRowOfGp.add(i);
+            }
+        }
+ 
+        // Style index helpers:
+        // Inner row of GP  → 3 + colorIdx          (borderId=1 thin)
+        // Last row of GP   → 3 + palette.length + colorIdx  (borderId=2 medium bottom)
+        const getStyleIdx = (rowIdx, gpNum) => {
+            const colorIdx = gpColor[gpNum] ?? 0;
+            return lastRowOfGp.has(rowIdx)
+                ? 3 + palette.length + colorIdx
+                : 3 + colorIdx;
+        };
+ 
         // Sheet rows
         let sheetRows = '';
         sheetRows += `<row r="1"><c r="A1" s="2" t="inlineStr"><is><t>${xe(settings.companyName||'RR Castings')} - Gate Pass Report</t></is></c></row>`;
@@ -2883,16 +2919,16 @@ async function saveEditGatePass(e) {
         sheetRows += `<row r="6">${headers.map((h,c)=>makeCell(h,1,c,6)).join('')}</row>`;
         rows.forEach((r,i) => {
             const rn = 7 + i;
-            const si = 3 + (gpColor[r.g] ?? 0);
+            const si = getStyleIdx(i, r.g);
             sheetRows += `<row r="${rn}">${r.d.map((v,c)=>makeCell(v,si,c,rn)).join('')}</row>`;
         });
-
+ 
         const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${colsXml}</cols><sheetData>${sheetRows}</sheetData></worksheet>`;
-
+ 
         // --- Minimal ZIP builder ---
         const enc = new TextEncoder();
         const toU8 = s => enc.encode(s);
-
+ 
         const crc32 = data => {
             const t = new Uint32Array(256);
             for (let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c;}
@@ -2903,7 +2939,7 @@ async function saveEditGatePass(e) {
         const u16 = n => new Uint8Array([n&0xFF,(n>>8)&0xFF]);
         const u32 = n => new Uint8Array([n&0xFF,(n>>8)&0xFF,(n>>16)&0xFF,(n>>24)&0xFF]);
         const cat = (...arrs) => { const t=new Uint8Array(arrs.reduce((s,a)=>s+a.length,0));let p=0;arrs.forEach(a=>{t.set(a,p);p+=a.length;});return t; };
-
+ 
         const zipFiles = [
             { n:'[Content_Types].xml', d:toU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>') },
             { n:'_rels/.rels',          d:toU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>') },
@@ -2912,7 +2948,7 @@ async function saveEditGatePass(e) {
             { n:'xl/styles.xml',        d:toU8(stylesXml) },
             { n:'xl/worksheets/sheet1.xml', d:toU8(sheetXml) }
         ];
-
+ 
         const localParts = [];
         const centralParts = [];
         let offset = 0;
@@ -2934,7 +2970,7 @@ async function saveEditGatePass(e) {
             centralParts.push(cd);
             offset += lh.length;
         });
-
+ 
         const cdSize = centralParts.reduce((s,b)=>s+b.length,0);
         const eocd = cat(
             new Uint8Array([0x50,0x4B,0x05,0x06,0,0,0,0]),
@@ -2942,7 +2978,7 @@ async function saveEditGatePass(e) {
             u32(cdSize), u32(offset), u16(0)
         );
         const zip = cat(...localParts, ...centralParts, eocd);
-
+ 
         const blob = new Blob([zip], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
@@ -2950,7 +2986,6 @@ async function saveEditGatePass(e) {
         document.body.appendChild(a); a.click();
         document.body.removeChild(a); URL.revokeObjectURL(url);
     }
-
     // ============================================================
     // DASHBOARD — Update Stats & Recent Table
     // ============================================================
