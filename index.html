@@ -1640,16 +1640,17 @@ const firebaseConfig = {
     function applyRolePermissions() {
         if (!userRole) userRole = 'viewer';
 
+        // First reset ALL nav items to visible
+        document.querySelectorAll('[data-page]').forEach(el => el.style.display = '');
+
         if (userRole === 'viewer') {
-            // Hide: Create Gate Pass, Customers, Products, Settings
             document.querySelectorAll('[data-page="createGatePass"]').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('[data-page="customers"]').forEach(el => el.style.display    = 'none');
-            document.querySelectorAll('[data-page="products"]').forEach(el => el.style.display     = 'none');
-            document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display     = 'none');
+            document.querySelectorAll('[data-page="customers"]').forEach(el => el.style.display      = 'none');
+            document.querySelectorAll('[data-page="products"]').forEach(el => el.style.display       = 'none');
+            document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display       = 'none');
             const fab = document.getElementById('fabCreateGp');
             if (fab) fab.style.display = 'none';
         } else if (userRole === 'user') {
-            // Hide: Settings only
             document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display = 'none');
             const fab = document.getElementById('fabCreateGp');
             if (fab) fab.style.display = 'flex';
