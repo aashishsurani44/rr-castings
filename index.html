@@ -560,7 +560,7 @@
                 <div class="form-group" style="margin-top: 15px;">
                     <label>Password</label>
                     <div style="position:relative;">
-                        <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="new-password" style="padding-right:42px;width:100%;">
+                        <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="off" style="padding-right:42px;width:100%;" autofocus>
                         <button type="button" id="togglePwdBtn" onclick="const i=document.getElementById('loginPassword');if(i.type==='password'){i.type='text';this.textContent='🙈';}else{i.type='password';this.textContent='👁';}" style="position:absolute;right:0;top:0;height:100%;width:40px;border:none;background:transparent;cursor:pointer;font-size:16px;color:#888;">👁</button>
                     </div>
                 </div>
