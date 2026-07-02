@@ -1509,21 +1509,31 @@ const firebaseConfig = {
     // Brute force protection
     const MAX_ATTEMPTS = 5;
     const LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutes
-    let loginAttempts  = 0;
-    let lockoutUntil   = 0;
 
     async function handleLogin(e) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (Date.now() < lockoutUntil) {
-            const secs = Math.ceil((lockoutUntil - Date.now()) / 1000);
-            document.getElementById('loginAlert').innerHTML =
-                `<div class="alert alert-error">Too many failed attempts. Try again in ${secs}s.</div>`;
+        const email     = document.getElementById('loginEmailSelect').value.trim();
+        const alertDiv  = document.getElementById('loginAlert');
+
+        if (!email) {
+            alertDiv.innerHTML = `<div class="alert alert-error">Please select an email.</div>`;
             return;
         }
 
-        const email    = document.getElementById('loginEmailSelect').value.trim();
+        // Check lockout from localStorage (persists across refresh)
+        const lockoutKey  = 'lockoutUntil_' + btoa(email);
+        const attemptKey  = 'loginAttempts_' + btoa(email);
+        const lockoutUntil = parseInt(localStorage.getItem(lockoutKey) || '0');
+        const loginAttempts = parseInt(localStorage.getItem(attemptKey) || '0');
+
+        if (Date.now() < lockoutUntil) {
+            const mins = Math.ceil((lockoutUntil - Date.now()) / 60000);
+            alertDiv.innerHTML = `<div class="alert alert-error">Too many failed attempts. Try again in ${mins} minute${mins > 1 ? 's' : ''}.</div>`;
+            return;
+        }
+
         const password = document.getElementById('loginPassword').value;
         const alertDiv = document.getElementById('loginAlert');
         const btn      = document.getElementById('loginSubmitBtn');
@@ -1543,8 +1553,8 @@ const firebaseConfig = {
 
         try {
             await auth.signInWithEmailAndPassword(email, password);
-            loginAttempts = 0;
-            lockoutUntil  = 0;
+            localStorage.removeItem(attemptKey);
+            localStorage.removeItem(lockoutKey);
             alertDiv.innerHTML = '<div class="alert alert-success">Login successful!</div>';
             document.getElementById('loginPassword').value = '';
         } catch (error) {
@@ -1554,11 +1564,14 @@ const firebaseConfig = {
             } else if (error.code === 'auth/too-many-requests') {
                 msg = 'Too many failed attempts. Please try again later.';
             }
-            loginAttempts++;
-            if (loginAttempts >= MAX_ATTEMPTS) {
-                lockoutUntil  = Date.now() + LOCKOUT_MS;
-                loginAttempts = 0;
+            const newAttempts = loginAttempts + 1;
+            localStorage.setItem(attemptKey, newAttempts);
+            if (newAttempts >= MAX_ATTEMPTS) {
+                localStorage.setItem(lockoutKey, Date.now() + LOCKOUT_MS);
+                localStorage.setItem(attemptKey, '0');
                 msg = `Too many failed attempts. Locked out for 5 minutes.`;
+            } else {
+                msg = `${msg} (${newAttempts}/${MAX_ATTEMPTS} attempts)`;
             }
             alertDiv.innerHTML = `<div class="alert alert-error">${msg}</div>`;
             btn.textContent = 'Login';
