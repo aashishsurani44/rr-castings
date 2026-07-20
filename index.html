@@ -1561,13 +1561,6 @@ const firebaseConfig = {
         if (Date.now() < lockoutUntil) { checkLockoutStatus(); return; }
 
         const email    = document.getElementById('loginEmailSelect').value.trim();
-        const alertDiv = document.getElementById('loginAlert');
-
-        if (!email) {
-            alertDiv.innerHTML = `<div class="alert alert-error">Please select an email.</div>`;
-            return;
-        }
-
         const password = document.getElementById('loginPassword').value;
         const alertDiv = document.getElementById('loginAlert');
         const btn      = document.getElementById('loginSubmitBtn');
