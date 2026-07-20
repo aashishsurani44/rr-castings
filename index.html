@@ -1509,17 +1509,62 @@ const firebaseConfig = {
     // Brute force protection
     const MAX_ATTEMPTS = 5;
     const LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutes
-    let loginAttempts  = 0;
-    let lockoutUntil   = 0;
+
+    const LOGIN_ATTEMPTS_KEY = 'rrcGpLoginAttempts';
+    const LOCKOUT_UNTIL_KEY  = 'rrcGpLockoutUntil';
+
+    let loginAttempts  = parseInt(localStorage.getItem(LOGIN_ATTEMPTS_KEY), 10) || 0;
+    let lockoutUntil   = parseInt(localStorage.getItem(LOCKOUT_UNTIL_KEY),  10) || 0;
+    let lockoutTimerId = null;
+
+    function persistLoginState() {
+        localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(loginAttempts));
+        localStorage.setItem(LOCKOUT_UNTIL_KEY,  String(lockoutUntil));
+    }
+
+    function clearLockoutTimer() {
+        if (lockoutTimerId) { clearInterval(lockoutTimerId); lockoutTimerId = null; }
+    }
+
+    function checkLockoutStatus() {
+        const btn      = document.getElementById('loginSubmitBtn');
+        const alertDiv = document.getElementById('loginAlert');
+        if (!btn || !alertDiv) return;
+        clearLockoutTimer();
+        if (Date.now() < lockoutUntil) {
+            btn.disabled = true;
+            const tick = () => {
+                const remaining = lockoutUntil - Date.now();
+                if (remaining <= 0) {
+                    clearLockoutTimer();
+                    loginAttempts = 0; lockoutUntil = 0;
+                    persistLoginState();
+                    btn.disabled = false;
+                    btn.textContent = 'Login';
+                    alertDiv.innerHTML = '';
+                    return;
+                }
+                const secs = Math.ceil(remaining / 1000);
+                alertDiv.innerHTML = `<div class="alert alert-error">Too many failed attempts. Try again in ${secs}s.</div>`;
+            };
+            tick();
+            lockoutTimerId = setInterval(tick, 1000);
+        } else {
+            btn.disabled = false;
+        }
+    }
 
     async function handleLogin(e) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (Date.now() < lockoutUntil) {
-            const secs = Math.ceil((lockoutUntil - Date.now()) / 1000);
-            document.getElementById('loginAlert').innerHTML =
-                `<div class="alert alert-error">Too many failed attempts. Try again in ${secs}s.</div>`;
+        if (Date.now() < lockoutUntil) { checkLockoutStatus(); return; }
+
+        const email    = document.getElementById('loginEmailSelect').value.trim();
+        const alertDiv = document.getElementById('loginAlert');
+
+        if (!email) {
+            alertDiv.innerHTML = `<div class="alert alert-error">Please select an email.</div>`;
             return;
         }
 
@@ -1543,8 +1588,9 @@ const firebaseConfig = {
 
         try {
             await auth.signInWithEmailAndPassword(email, password);
-            loginAttempts = 0;
-            lockoutUntil  = 0;
+            loginAttempts = 0; lockoutUntil = 0;
+            persistLoginState();
+            clearLockoutTimer();
             alertDiv.innerHTML = '<div class="alert alert-success">Login successful!</div>';
             document.getElementById('loginPassword').value = '';
         } catch (error) {
@@ -1560,9 +1606,11 @@ const firebaseConfig = {
                 loginAttempts = 0;
                 msg = `Too many failed attempts. Locked out for 5 minutes.`;
             }
+            persistLoginState();
             alertDiv.innerHTML = `<div class="alert alert-error">${msg}</div>`;
             btn.textContent = 'Login';
             btn.disabled    = false;
+            if (Date.now() < lockoutUntil) checkLockoutStatus();
         }
     }
 
@@ -1592,6 +1640,7 @@ const firebaseConfig = {
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('mainApp').style.display    = 'none';
         loadLoginEmailDropdown();
+        checkLockoutStatus();
     }
 
  function showMainApp() {
